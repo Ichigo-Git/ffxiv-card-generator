@@ -2,10 +2,669 @@
 <html lang="ja">
 <head>
   <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>FFXIV Case File Generator</title>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+JP:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+  <style>
+    :root {
+      --bg: #f3f4f6;
+      --panel: #ffffff;
+      --ink: #222;
+      --muted: #6b7280;
+      --line: #b7bcc4;
+      --accent: #9e2a2b;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      font-family: "IBM Plex Sans JP", sans-serif;
+      background: var(--bg);
+      color: var(--ink);
+    }
+
+    header {
+      padding: 20px;
+      border-bottom: 1px solid #ddd;
+      background: #fff;
+    }
+
+    header h1 {
+      margin: 0;
+      font-size: 22px;
+      letter-spacing: 0.04em;
+    }
+
+    header p {
+      margin: 6px 0 0;
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    main {
+      display: grid;
+      grid-template-columns: 360px 1fr;
+      gap: 20px;
+      padding: 20px;
+      align-items: start;
+    }
+
+    .controls {
+      background: var(--panel);
+      border: 1px solid #ddd;
+      border-radius: 12px;
+      padding: 16px;
+      position: sticky;
+      top: 20px;
+    }
+
+    .controls h2 {
+      margin: 0 0 12px;
+      font-size: 16px;
+      border-bottom: 1px solid #ddd;
+      padding-bottom: 8px;
+    }
+
+    .field {
+      margin-bottom: 12px;
+    }
+
+    label {
+      display: block;
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: 0.05em;
+      margin-bottom: 4px;
+      color: #333;
+    }
+
+    input[type="text"],
+    input[type="date"],
+    textarea,
+    select {
+      width: 100%;
+      border: 1px solid #cfd3da;
+      border-radius: 8px;
+      padding: 8px 10px;
+      font-family: "IBM Plex Sans JP", sans-serif;
+      font-size: 14px;
+      background: #fff;
+    }
+
+    textarea {
+      min-height: 84px;
+      resize: vertical;
+    }
+
+    input[type="range"] {
+      width: 100%;
+    }
+
+    .check-list {
+      display: grid;
+      gap: 6px;
+      font-size: 13px;
+    }
+
+    .check-list label {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+      font-weight: 500;
+      letter-spacing: 0;
+      margin: 0;
+    }
+
+    .meta-box {
+      background: #f7f7f7;
+      border: 1px solid #ddd;
+      border-radius: 8px;
+      padding: 10px;
+      font-family: "JetBrains Mono", monospace;
+      font-size: 13px;
+      margin-bottom: 12px;
+    }
+
+    button {
+      width: 100%;
+      border: 0;
+      border-radius: 10px;
+      padding: 12px;
+      font-weight: 700;
+      cursor: pointer;
+      background: #222;
+      color: #fff;
+      font-family: "IBM Plex Sans JP", sans-serif;
+      font-size: 14px;
+    }
+
+    button:hover {
+      opacity: 0.88;
+    }
+
+    .preview-wrap {
+      background: var(--panel);
+      border: 1px solid #ddd;
+      border-radius: 12px;
+      padding: 16px;
+      overflow: auto;
+    }
+
+    .preview-wrap h2 {
+      margin: 0 0 12px;
+      font-size: 16px;
+    }
+
+    canvas {
+      display: block;
+      width: min(540px, 100%);
+      height: auto;
+      border: 1px solid #ddd;
+      background: #eef0f2;
+    }
+
+    .note {
+      font-size: 12px;
+      color: var(--muted);
+      line-height: 1.6;
+      margin-top: 10px;
+    }
+
+    @media (max-width: 900px) {
+      main {
+        grid-template-columns: 1fr;
+      }
+
+      .controls {
+        position: static;
+      }
+    }
+  </style>
 </head>
+
 <body>
-  <h1>FFXIV Card Generator</h1>
-  <p>準備中です。完成後、レポジトリ名を変更するよ</p>
+  <header>
+    <h1>FFXIV Case File Generator</h1>
+    <p>Case file style character card generator. Work in progress.</p>
+  </header>
+
+  <main>
+    <section class="controls">
+      <h2>Input</h2>
+
+      <div class="meta-box">
+        FILE NO. <span id="fileNoView">001</span><br>
+        Auto numbering: ON
+      </div>
+
+      <div class="field">
+        <label for="imageInput">SCREENSHOT</label>
+        <input id="imageInput" type="file" accept="image/*">
+      </div>
+
+      <div class="field">
+        <label for="imageScale">IMAGE SCALE</label>
+        <input id="imageScale" type="range" min="0.5" max="2.5" step="0.01" value="1">
+      </div>
+
+      <div class="field">
+        <label for="imageX">IMAGE X POSITION</label>
+        <input id="imageX" type="range" min="-500" max="500" step="1" value="0">
+      </div>
+
+      <div class="field">
+        <label for="imageY">IMAGE Y POSITION</label>
+        <input id="imageY" type="range" min="-500" max="500" step="1" value="0">
+      </div>
+
+      <div class="field">
+        <label for="subjectName">SUBJECT NAME</label>
+        <input id="subjectName" type="text" value="KOMAKO SERIES">
+      </div>
+
+      <div class="field">
+        <label for="race">RACE</label>
+        <input id="race" type="text" value="MIQO'TE">
+      </div>
+
+      <div class="field">
+        <label for="dcWorld">DC / WORLD</label>
+        <input id="dcWorld" type="text" value="GAIA / FENRIR">
+      </div>
+
+      <div class="field">
+        <label for="mainJob">MAIN ROLE / JOB</label>
+        <input id="mainJob" type="text" value="TANK / PALADIN">
+      </div>
+
+      <div class="field">
+        <label for="dateInput">DATE LOGGED</label>
+        <input id="dateInput" type="date">
+      </div>
+
+      <div class="field">
+        <label>ACTIVITY</label>
+        <div class="check-list">
+          <label><input class="activity" type="checkbox" value="SNS CONTACT" checked> SNS CONTACT</label>
+          <label><input class="activity" type="checkbox" value="IN-GAME PLAY" checked> IN-GAME PLAY</label>
+          <label><input class="activity" type="checkbox" value="PHOTO SESSION" checked> PHOTO SESSION</label>
+          <label><input class="activity" type="checkbox" value="PVP" checked> PVP</label>
+          <label><input class="activity" type="checkbox" value="HIGH-END CONTENT"> HIGH-END CONTENT</label>
+        </div>
+      </div>
+
+      <div class="field">
+        <label>STYLE</label>
+        <div class="check-list">
+          <label><input class="styleCheck" type="checkbox" value="CASUAL PACE" checked> CASUAL PACE</label>
+          <label><input class="styleCheck" type="checkbox" value="SLOW CONNECTION" checked> SLOW CONNECTION</label>
+        </div>
+      </div>
+
+      <div class="field">
+        <label for="behavior">BEHAVIOR PATTERN</label>
+        <textarea id="behavior">Bright and unreserved on first contact.
+Responsive to casual play,
+both battle and non-battle.</textarea>
+      </div>
+
+      <div class="field">
+        <label for="remarks">REMARKS</label>
+        <textarea id="remarks">Highly responsive to screenshots
+and glamour talk.</textarea>
+      </div>
+
+      <button id="downloadBtn">PNG SAVE</button>
+
+      <p class="note">
+        FILE NO. はPNG保存時に自動で次の番号へ進みます。999の次は001に戻ります。
+      </p>
+    </section>
+
+    <section class="preview-wrap">
+      <h2>Preview</h2>
+      <canvas id="cardCanvas" width="1080" height="1350"></canvas>
+      <p class="note">
+        これは v0.1 の仮レイアウトです。ここからクリスタ版の見た目に寄せていきます。
+      </p>
+    </section>
+  </main>
+
+  <script>
+    const canvas = document.getElementById("cardCanvas");
+    const ctx = canvas.getContext("2d");
+
+    const W = canvas.width;
+    const H = canvas.height;
+
+    const fileNoView = document.getElementById("fileNoView");
+    const imageInput = document.getElementById("imageInput");
+    const imageScale = document.getElementById("imageScale");
+    const imageX = document.getElementById("imageX");
+    const imageY = document.getElementById("imageY");
+    const subjectName = document.getElementById("subjectName");
+    const race = document.getElementById("race");
+    const dcWorld = document.getElementById("dcWorld");
+    const mainJob = document.getElementById("mainJob");
+    const dateInput = document.getElementById("dateInput");
+    const behavior = document.getElementById("behavior");
+    const remarks = document.getElementById("remarks");
+    const downloadBtn = document.getElementById("downloadBtn");
+
+    let uploadedImage = null;
+
+    function getFileNo() {
+      const saved = localStorage.getItem("casefile_file_no");
+      let n = parseInt(saved || "1", 10);
+      if (Number.isNaN(n) || n < 1 || n > 999) n = 1;
+      return n;
+    }
+
+    function setFileNo(n) {
+      if (n > 999) n = 1;
+      if (n < 1) n = 1;
+      localStorage.setItem("casefile_file_no", String(n));
+      fileNoView.textContent = formatFileNo(n);
+    }
+
+    function nextFileNo() {
+      const current = getFileNo();
+      const next = current >= 999 ? 1 : current + 1;
+      setFileNo(next);
+    }
+
+    function formatFileNo(n) {
+      return String(n).padStart(3, "0");
+    }
+
+    function setToday() {
+      const today = new Date();
+      const yyyy = today.getFullYear();
+      const mm = String(today.getMonth() + 1).padStart(2, "0");
+      const dd = String(today.getDate()).padStart(2, "0");
+      dateInput.value = `${yyyy}-${mm}-${dd}`;
+    }
+
+    function formatDateForStamp(value) {
+      if (!value) return "";
+      const [yyyy, mm, dd] = value.split("-");
+      const months = ["JAN", "FEB", "MAR", "APR", "MAY", "JUN", "JUL", "AUG", "SEP", "OCT", "NOV", "DEC"];
+      const monthIndex = parseInt(mm, 10) - 1;
+      const mon = months[monthIndex] || "JAN";
+      return `${dd}.${mon}.${yyyy}`;
+    }
+
+    function drawTextBlock(text, x, y, maxWidth, lineHeight) {
+      const lines = text.split("\n");
+      lines.forEach((line, index) => {
+        ctx.fillText(line, x, y + index * lineHeight, maxWidth);
+      });
+    }
+
+    function drawField(label, value, x, y) {
+      ctx.font = "600 15px 'JetBrains Mono', monospace";
+      ctx.fillStyle = "#6b7280";
+      ctx.fillText(label, x, y);
+
+      ctx.font = "600 25px 'JetBrains Mono', monospace";
+      ctx.fillStyle = "#222";
+      ctx.fillText(value, x, y + 34);
+    }
+
+    function drawCheckLine(checked, text, x, y) {
+      ctx.font = "500 22px 'JetBrains Mono', monospace";
+      ctx.fillStyle = "#222";
+      ctx.fillText(`${checked ? "☑" : "☐"}  ${text}`, x, y);
+    }
+
+    function drawRotatedStamp(text, x, y, angleDeg) {
+      ctx.save();
+      ctx.translate(x, y);
+      ctx.rotate(angleDeg * Math.PI / 180);
+      ctx.strokeStyle = "rgba(158, 42, 43, 0.52)";
+      ctx.lineWidth = 5;
+      ctx.font = "700 64px 'IBM Plex Sans JP', sans-serif";
+      ctx.textAlign = "center";
+      ctx.strokeText(text, 0, 0);
+      ctx.fillStyle = "rgba(158, 42, 43, 0.18)";
+      ctx.fillText(text, 0, 0);
+      ctx.restore();
+      ctx.textAlign = "left";
+    }
+
+    function drawCircleStamp(fileNo, dateText) {
+      const x = 880;
+      const y = 1160;
+      const r = 92;
+
+      ctx.save();
+      ctx.translate(x, y);
+      ctx.strokeStyle = "rgba(158, 42, 43, 0.46)";
+      ctx.fillStyle = "rgba(158, 42, 43, 0.46)";
+      ctx.lineWidth = 3;
+
+      ctx.beginPath();
+      ctx.arc(0, 0, r, 0, Math.PI * 2);
+      ctx.stroke();
+
+      ctx.beginPath();
+      ctx.arc(0, 0, r - 14, 0, Math.PI * 2);
+      ctx.stroke();
+
+      ctx.font = "700 16px 'JetBrains Mono', monospace";
+      ctx.textAlign = "center";
+      ctx.fillText("DATE LOGGED", 0, -44);
+
+      ctx.font = "700 22px 'JetBrains Mono', monospace";
+      ctx.fillText(dateText, 0, 4);
+
+      ctx.font = "700 15px 'JetBrains Mono', monospace";
+      ctx.fillText(`FILE NO.${fileNo}`, 0, 46);
+
+      ctx.restore();
+      ctx.textAlign = "left";
+    }
+
+    function drawPlaceholderPhoto(x, y, w, h) {
+      ctx.fillStyle = "#d9dde3";
+      ctx.fillRect(x, y, w, h);
+      ctx.fillStyle = "#8a9099";
+      ctx.font = "600 24px 'IBM Plex Sans JP', sans-serif";
+      ctx.textAlign = "center";
+      ctx.fillText("SCREENSHOT", x + w / 2, y + h / 2);
+      ctx.textAlign = "left";
+    }
+
+    function drawUploadedImage(x, y, w, h) {
+      if (!uploadedImage) {
+        drawPlaceholderPhoto(x, y, w, h);
+        return;
+      }
+
+      ctx.save();
+      ctx.beginPath();
+      ctx.rect(x, y, w, h);
+      ctx.clip();
+
+      const scale = parseFloat(imageScale.value);
+      const offsetX = parseFloat(imageX.value);
+      const offsetY = parseFloat(imageY.value);
+
+      const imgRatio = uploadedImage.width / uploadedImage.height;
+      const frameRatio = w / h;
+
+      let drawW;
+      let drawH;
+
+      if (imgRatio > frameRatio) {
+        drawH = h * scale;
+        drawW = drawH * imgRatio;
+      } else {
+        drawW = w * scale;
+        drawH = drawW / imgRatio;
+      }
+
+      const dx = x + (w - drawW) / 2 + offsetX;
+      const dy = y + (h - drawH) / 2 + offsetY;
+
+      ctx.drawImage(uploadedImage, dx, dy, drawW, drawH);
+      ctx.restore();
+    }
+
+    function render() {
+      const fileNo = formatFileNo(getFileNo());
+      const dateText = formatDateForStamp(dateInput.value);
+
+      fileNoView.textContent = fileNo;
+
+      ctx.clearRect(0, 0, W, H);
+
+      // Background
+      ctx.fillStyle = "#eef0f2";
+      ctx.fillRect(0, 0, W, H);
+
+      // Subtle paper texture
+      for (let i = 0; i < 1800; i++) {
+        const alpha = Math.random() * 0.025;
+        ctx.fillStyle = `rgba(0, 0, 0, ${alpha})`;
+        ctx.fillRect(Math.random() * W, Math.random() * H, 1, 1);
+      }
+
+      // Layout constants
+      const margin = 45;
+      const headerY = 135;
+      const photoX = 65;
+      const photoY = 170;
+      const photoW = 575;
+      const photoH = 820;
+
+      const rightX = 675;
+      const rightY = 170;
+      const rightW = 340;
+      const rightH = 820;
+
+      const obsX = 65;
+      const obsY = 1030;
+      const obsW = 950;
+      const obsH = 235;
+
+      // Outer frame
+      ctx.strokeStyle = "#aeb4bd";
+      ctx.lineWidth = 2;
+      ctx.strokeRect(margin, 40, W - margin * 2, H - 80);
+
+      // Header line
+      ctx.beginPath();
+      ctx.moveTo(margin, headerY);
+      ctx.lineTo(W - margin, headerY);
+      ctx.stroke();
+
+      // Header text
+      ctx.fillStyle = "#20242a";
+      ctx.font = "700 62px 'IBM Plex Sans JP', sans-serif";
+      ctx.fillText("CASE FILE", 65, 104);
+
+      ctx.font = "600 18px 'JetBrains Mono', monospace";
+      ctx.fillText(`FILE NO. ${fileNo}`, 805, 76);
+      ctx.fillText("STATUS: ACTIVE", 805, 106);
+
+      // Photo frame
+      ctx.strokeStyle = "#aeb4bd";
+      ctx.lineWidth = 2;
+      ctx.strokeRect(photoX, photoY, photoW, photoH);
+      drawUploadedImage(photoX, photoY, photoW, photoH);
+
+      // Right panel
+      ctx.strokeStyle = "#aeb4bd";
+      ctx.strokeRect(rightX, rightY, rightW, rightH);
+
+      // Right panel divider
+      ctx.beginPath();
+      ctx.moveTo(rightX, 545);
+      ctx.lineTo(rightX + rightW, 545);
+      ctx.stroke();
+
+      // Subject profile
+      ctx.font = "700 26px 'IBM Plex Sans JP', sans-serif";
+      ctx.fillStyle = "#20242a";
+      ctx.fillText("SUBJECT PROFILE", rightX + 24, rightY + 44);
+
+      drawField("SUBJECT NAME", subjectName.value, rightX + 24, rightY + 95);
+      drawField("RACE", race.value, rightX + 24, rightY + 180);
+      drawField("DC / WORLD", dcWorld.value, rightX + 24, rightY + 265);
+      drawField("MAIN ROLE / JOB", mainJob.value, rightX + 24, rightY + 350);
+
+      // Contact protocol
+      ctx.font = "700 25px 'IBM Plex Sans JP', sans-serif";
+      ctx.fillStyle = "#20242a";
+      ctx.fillText("CONTACT PROTOCOL", rightX + 24, 595);
+
+      ctx.font = "700 17px 'JetBrains Mono', monospace";
+      ctx.fillStyle = "#6b7280";
+      ctx.fillText("ACTIVITY", rightX + 24, 640);
+
+      const activityItems = [...document.querySelectorAll(".activity")];
+      let lineY = 675;
+      activityItems.forEach(item => {
+        drawCheckLine(item.checked, item.value, rightX + 24, lineY);
+        lineY += 38;
+      });
+
+      ctx.font = "700 17px 'JetBrains Mono', monospace";
+      ctx.fillStyle = "#6b7280";
+      ctx.fillText("STYLE", rightX + 24, lineY + 18);
+
+      lineY += 52;
+      const styleItems = [...document.querySelectorAll(".styleCheck")];
+      styleItems.forEach(item => {
+        drawCheckLine(item.checked, item.value, rightX + 24, lineY);
+        lineY += 38;
+      });
+
+      // Observation record
+      ctx.strokeStyle = "#aeb4bd";
+      ctx.strokeRect(obsX, obsY, obsW, obsH);
+
+      ctx.font = "700 26px 'IBM Plex Sans JP', sans-serif";
+      ctx.fillStyle = "#20242a";
+      ctx.fillText("OBSERVATION RECORD", obsX + 24, obsY + 45);
+
+      ctx.font = "700 17px 'JetBrains Mono', monospace";
+      ctx.fillStyle = "#6b7280";
+      ctx.fillText("BEHAVIOR PATTERN", obsX + 24, obsY + 88);
+
+      ctx.font = "500 22px 'JetBrains Mono', monospace";
+      ctx.fillStyle = "#222";
+      drawTextBlock(behavior.value, obsX + 24, obsY + 122, 520, 31);
+
+      ctx.font = "700 17px 'JetBrains Mono', monospace";
+      ctx.fillStyle = "#6b7280";
+      ctx.fillText("REMARKS", obsX + 590, obsY + 88);
+
+      ctx.font = "500 22px 'JetBrains Mono', monospace";
+      ctx.fillStyle = "#222";
+      drawTextBlock(remarks.value, obsX + 590, obsY + 122, 330, 31);
+
+      // Stamps
+      drawRotatedStamp("CONFIDENTIAL", 330, 840, -12);
+      drawCircleStamp(fileNo, dateText);
+
+      // Copyright
+      ctx.font = "500 12px 'JetBrains Mono', monospace";
+      ctx.fillStyle = "#555";
+      ctx.fillText("© SQUARE ENIX", 840, 1300);
+    }
+
+    imageInput.addEventListener("change", event => {
+      const file = event.target.files[0];
+      if (!file) return;
+
+      const reader = new FileReader();
+      reader.onload = e => {
+        const img = new Image();
+        img.onload = () => {
+          uploadedImage = img;
+          render();
+        };
+        img.src = e.target.result;
+      };
+      reader.readAsDataURL(file);
+    });
+
+    const inputs = document.querySelectorAll("input, textarea");
+    inputs.forEach(input => {
+      input.addEventListener("input", render);
+      input.addEventListener("change", render);
+    });
+
+    downloadBtn.addEventListener("click", () => {
+      render();
+
+      const fileNo = formatFileNo(getFileNo());
+      const link = document.createElement("a");
+      link.download = `casefile_${fileNo}.png`;
+      link.href = canvas.toDataURL("image/png");
+      link.click();
+
+      nextFileNo();
+      render();
+    });
+
+    setFileNo(getFileNo());
+    setToday();
+
+    if (document.fonts) {
+      document.fonts.ready.then(render);
+    } else {
+      render();
+    }
+  </script>
 </body>
 </html>
