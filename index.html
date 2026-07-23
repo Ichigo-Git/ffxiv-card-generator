@@ -423,12 +423,15 @@ function drawConfidentialStampImage() {
     return;
   }
 
-  const x = 90;
-  const y = 650;
+  const x = 70;
+  const y = 690;
   const w = 520;
   const h = 190;
 
+ ctx.save();
+  ctx.globalAlpha = 0.42;
   ctx.drawImage(confidentialStampImg, x, y, w, h);
+  ctx.restore();
 }
     
 function drawCircleStamp(fileNo, dateText) {
