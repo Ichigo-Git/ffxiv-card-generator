@@ -423,13 +423,13 @@ function drawConfidentialStampImage() {
     return;
   }
 
-  const x = 70;
-  const y = 690;
+ const x = 115;
+  const y = 660;
   const w = 520;
   const h = 190;
 
- ctx.save();
-  ctx.globalAlpha = 0.42;
+  ctx.save();
+  ctx.globalAlpha = 0.28;
   ctx.drawImage(confidentialStampImg, x, y, w, h);
   ctx.restore();
 }
