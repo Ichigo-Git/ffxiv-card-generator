@@ -320,6 +320,24 @@ and glamour talk.</textarea>
 
     let uploadedImage = null;
 
+    const confidentialStampImg = new Image();
+    const dateStampBaseImg = new Image();
+
+    let confidentialStampReady = false;
+    let dateStampBaseReady = false;
+
+    confidentialStampImg.onload = () => {
+      confidentialStampReady = true;
+      render();
+    };
+    dateStampBaseImg.onload = () => {
+      dateStampBaseReady = true;
+      render();
+    };
+    
+    confidentialStampImg.src = "assets/stamp_confidential.png";
+    dateStampBaseImg.src = "assets/stamp_date_base.png";
+    
     function getFileNo() {
       const saved = localStorage.getItem("casefile_file_no");
       let n = parseInt(saved || "1", 10);
@@ -399,38 +417,65 @@ and glamour talk.</textarea>
       ctx.textAlign = "left";
     }
 
-    function drawCircleStamp(fileNo, dateText) {
-      const x = 880;
-      const y = 1160;
-      const r = 92;
+function drawConfidentialStampImage() {
+  if (!confidentialStampReady) {
+    drawRotatedStamp("CONFIDENTIAL", 330, 840, -12);
+    return;
+  }
 
-      ctx.save();
-      ctx.translate(x, y);
-      ctx.strokeStyle = "rgba(158, 42, 43, 0.46)";
-      ctx.fillStyle = "rgba(158, 42, 43, 0.46)";
-      ctx.lineWidth = 3;
+  const x = 90;
+  const y = 650;
+  const w = 520;
+  const h = 190;
 
-      ctx.beginPath();
-      ctx.arc(0, 0, r, 0, Math.PI * 2);
-      ctx.stroke();
+  ctx.drawImage(confidentialStampImg, x, y, w, h);
+}
+    
+function drawCircleStamp(fileNo, dateText) {
+  const x = 790;
+  const y = 1085;
+  const size = 165;
 
-      ctx.beginPath();
-      ctx.arc(0, 0, r - 14, 0, Math.PI * 2);
-      ctx.stroke();
+  if (dateStampBaseReady) {
+    ctx.drawImage(dateStampBaseImg, x, y, size, size);
+  } else {
+    ctx.save();
+    ctx.translate(x + size / 2, y + size / 2);
+    ctx.strokeStyle = "rgba(158, 42, 43, 0.46)";
+    ctx.fillStyle = "rgba(158, 42, 43, 0.46)";
+    ctx.lineWidth = 3;
 
-      ctx.font = "700 16px 'JetBrains Mono', monospace";
-      ctx.textAlign = "center";
-      ctx.fillText("DATE LOGGED", 0, -44);
+    ctx.beginPath();
+    ctx.arc(0, 0, 74, 0, Math.PI * 2);
+    ctx.stroke();
 
-      ctx.font = "700 22px 'JetBrains Mono', monospace";
-      ctx.fillText(dateText, 0, 4);
+    ctx.beginPath();
+    ctx.arc(0, 0, 62, 0, Math.PI * 2);
+    ctx.stroke();
 
-      ctx.font = "700 15px 'JetBrains Mono', monospace";
-      ctx.fillText(`FILE NO.${fileNo}`, 0, 46);
+    ctx.font = "700 16px 'JetBrains Mono', monospace";
+    ctx.textAlign = "center";
+    ctx.fillText("DATE LOGGED", 0, -32);
+    ctx.restore();
+    ctx.textAlign = "left";
+  }
 
-      ctx.restore();
-      ctx.textAlign = "left";
-    }
+  const cx = x + size / 2;
+  const cy = y + size / 2;
+
+  ctx.save();
+  ctx.textAlign = "center";
+  ctx.fillStyle = "rgba(158, 42, 43, 0.58)";
+
+  ctx.font = "700 18px 'JetBrains Mono', monospace";
+  ctx.fillText(dateText, cx, cy + 8);
+
+  ctx.font = "700 13px 'JetBrains Mono', monospace";
+  ctx.fillText(`FILE NO.${fileNo}`, cx, cy + 36);
+
+  ctx.restore();
+  ctx.textAlign = "left";
+}
 
     function drawPlaceholderPhoto(x, y, w, h) {
       ctx.fillStyle = "#d9dde3";
@@ -613,7 +658,7 @@ and glamour talk.</textarea>
       drawTextBlock(remarks.value, obsX + 590, obsY + 122, 330, 31);
 
       // Stamps
-      drawRotatedStamp("CONFIDENTIAL", 330, 840, -12);
+      drawConfidentialStampImage();
       drawCircleStamp(fileNo, dateText);
 
       // Copyright
