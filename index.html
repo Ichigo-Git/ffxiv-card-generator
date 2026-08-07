@@ -1,718 +1,750 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="ja">
 <head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>FFXIV Case File Generator</title>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CASE FILE GENERATOR</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Oswald:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&family=Stardos+Stencil:wght@400;700&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --paper:#eeece3;
+    --paper-dark:#e3e0d3;
+    --ink:#191714;
+    --ink-soft:#57544d;
+    --line:#c9c4b4;
+    --stamp:#9c2a1d;
+    --navy:#0e1a2b;
+    --black-archive:#0a0a0a;
+  }
+  *{box-sizing:border-box;}
+  body{
+    background:#d9d5c7;
+    font-family:'JetBrains Mono', monospace;
+    color:var(--ink);
+  }
+  .font-display{ font-family:'Oswald', sans-serif; }
+  .tracking-wide2{ letter-spacing:.18em; }
+  .tracking-wide3{ letter-spacing:.28em; }
 
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+JP:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+  /* ---- control panel inputs ---- */
+  .cp-input, .cp-select, .cp-textarea{
+    width:100%;
+    background:#f7f5ee;
+    border:1px solid var(--line);
+    color:var(--ink);
+    padding:.55rem .7rem;
+    font-family:'JetBrains Mono', monospace;
+    font-size:.82rem;
+    letter-spacing:.03em;
+    outline:none;
+    transition:border-color .15s ease, background .15s ease;
+  }
+  .cp-input:focus, .cp-select:focus, .cp-textarea:focus{
+    border-color:var(--ink);
+    background:#fffdf7;
+  }
+  .cp-label{
+    font-size:.66rem;
+    letter-spacing:.18em;
+    color:var(--ink-soft);
+    font-weight:600;
+    margin-bottom:.35rem;
+    display:block;
+  }
+  .cp-select{ appearance:none; -webkit-appearance:none;
+    background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='10' height='6'><path d='M0 0 L5 6 L10 0Z' fill='%23191714'/></svg>");
+    background-repeat:no-repeat; background-position:right .8rem center; padding-right:2rem;
+  }
 
-  <style>
-    :root {
-      --bg: #f3f4f6;
-      --panel: #ffffff;
-      --ink: #222;
-      --muted: #6b7280;
-      --line: #b7bcc4;
-      --accent: #9e2a2b;
-    }
+  .chk-btn{
+    display:flex; align-items:center; gap:.5rem;
+    border:1px solid var(--line);
+    background:#f7f5ee;
+    padding:.5rem .65rem;
+    font-size:.72rem;
+    letter-spacing:.06em;
+    cursor:pointer;
+    user-select:none;
+    transition:background .15s ease, color .15s ease, border-color .15s ease;
+  }
+  .chk-btn.checked{
+    background:var(--ink);
+    color:#f0eee3;
+    border-color:var(--ink);
+  }
+  .chk-box{
+    width:14px;height:14px;
+    border:1.5px solid currentColor;
+    display:flex;align-items:center;justify-content:center;
+    flex:none;
+  }
+  .chk-box svg{ width:10px;height:10px; opacity:0; }
+  .chk-btn.checked .chk-box svg{ opacity:1; }
 
-    * {
-      box-sizing: border-box;
-    }
+  .bg-swatch{
+    border:1px solid var(--line);
+    background:#f7f5ee;
+    padding:.7rem .5rem;
+    font-size:.62rem;
+    letter-spacing:.1em;
+    cursor:pointer;
+    text-align:center;
+    transition:border-color .15s ease, transform .1s ease;
+  }
+  .bg-swatch:hover{ transform:translateY(-1px); }
+  .bg-swatch.active{ border-color:var(--ink); border-width:2px; font-weight:600; }
+  .bg-preview{ height:28px; width:100%; margin-bottom:.45rem; border:1px solid var(--line); }
 
-    body {
-      margin: 0;
-      font-family: "IBM Plex Sans JP", sans-serif;
-      background: var(--bg);
-      color: var(--ink);
-    }
+  /* ---- case file panel : fixed to a 3:4 portrait ratio for clean X (Twitter) posting ---- */
+  #caseFileOuter{
+    width:100%;
+    max-width:620px;
+    margin:0 auto;
+  }
+  #caseFile{
+    position:relative;
+    overflow:hidden;
+    background:var(--paper);
+    color:var(--ink);
+    aspect-ratio:3/4;
+    display:flex;
+    flex-direction:column;
+    transition:background .25s ease, color .25s ease;
+  }
+  /* TACTICAL BLUE DOT — near-future SF console: tiny recessed dot grid + a glowing
+     radial core that sinks to near-black at the corners for depth */
+  #caseFile.theme-tactical{
+    background-color:#050b16;
+    background-image:
+      radial-gradient(ellipse at center, transparent 38%, rgba(0,0,0,.7) 100%),
+      radial-gradient(ellipse at 50% 16%, rgba(75,155,255,.5), rgba(9,20,42,0) 58%),
+      radial-gradient(circle at center, rgba(150,196,255,.4) .5px, transparent 1.1px);
+    background-size:100% 100%, 100% 100%, 6px 6px;
+    color:#dce7fb;
+  }
+  /* CLASSIFIED TEXTURE — worn vintage dossier paper: fine grain, age stains,
+     a warm center glow and a burned-edge vignette. No digital stripes. */
+  #caseFile.theme-classified{
+    background-color:#ddd2ab;
+    background-image:
+      repeating-linear-gradient(0deg, rgba(75,58,32,.05) 0px, transparent 1px, transparent 2px),
+      repeating-linear-gradient(90deg, rgba(75,58,32,.04) 0px, transparent 1px, transparent 3px),
+      radial-gradient(ellipse at 18% 22%, rgba(133,103,55,.18), transparent 50%),
+      radial-gradient(ellipse at 82% 74%, rgba(105,78,40,.16), transparent 55%),
+      radial-gradient(ellipse at 50% 42%, rgba(255,250,224,.55), rgba(212,197,157,0) 62%),
+      radial-gradient(ellipse at center, transparent 52%, rgba(54,39,19,.42) 100%);
+    background-size:3px 3px, 4px 4px, auto, auto, auto, auto;
+    color:#2a2318;
+  }
+  /* DAILY CHRONICLE — a soft, everyday-emo diary page: clean white ground with a
+     diagonal sunset-pink / lavender wash bleeding in from the top-left, a total
+     tonal departure from the two center-radiating themes above */
+  #caseFile.theme-daily{
+    --ink:#5c3c2e;
+    --ink-soft:#96725f;
+    --line:#e7bcc4;
+    --stamp:#8a5136;
+    background-color:#ffffff;
+    background-image:
+      linear-gradient(135deg, rgba(255,255,255,0) 8%, rgba(248,206,209,.65) 52%, rgba(219,201,235,.6) 100%);
+    color:#5c3c2e;
+  }
+  #caseFile.theme-tactical .cf-line{ border-color:rgba(255,255,255,.18) !important; }
+  #caseFile.theme-tactical .cf-soft{ color:rgba(230,230,230,.55) !important; }
 
-    header {
-      padding: 20px;
-      border-bottom: 1px solid #ddd;
-      background: #fff;
-    }
+  .cf-inner{
+    position:relative;
+    z-index:10;
+    display:flex;
+    flex-direction:column;
+    height:100%;
+    padding:5.5% 6% 4.5%;
+    gap:3.2%;
+  }
 
-    header h1 {
-      margin: 0;
-      font-size: 22px;
-      letter-spacing: 0.04em;
-    }
+  .watermark{
+    position:absolute;
+    z-index:30;
+    top:67%;
+    left:52%;
+    transform:translate(-50%,-50%) rotate(-14deg);
+    font-family:'Stardos Stencil', 'Share Tech Mono', monospace;
+    font-weight:700;
+    font-size:1.9rem;
+    letter-spacing:.34em;
+    text-indent:.34em; /* balances the trailing letter-spacing gap so the block reads centered */
+    white-space:nowrap;
+    pointer-events:none;
+    color:var(--stamp);
+    opacity:.4;
+    mix-blend-mode:multiply;
+    /* faint ink-roller unevenness: fine low-contrast diagonal banding across the letterforms */
+    -webkit-mask-image: repeating-linear-gradient(115deg, #000 0px, #000 2px, rgba(0,0,0,.7) 2px, rgba(0,0,0,.7) 3px);
+    mask-image: repeating-linear-gradient(115deg, #000 0px, #000 2px, rgba(0,0,0,.7) 2px, rgba(0,0,0,.7) 3px);
+    filter: contrast(1.12) blur(.3px);
+  }
+  /* MILITARY (tactical): stencil-white ink, screened onto the navy/photo like a HUD readout */
+  #caseFile.theme-tactical .watermark{
+    color:#ffffff;
+    opacity:.42;
+    mix-blend-mode:overlay;
+  }
+  /* CLASSICAL (classified): the same red-brown ink as the corner date stamp, multiplied into paper and photo */
+  #caseFile.theme-classified .watermark{
+    color:var(--stamp);
+    opacity:.4;
+    mix-blend-mode:multiply;
+  }
+  /* TRAVEL NOTE (daily): a soft vintage sepia-brown that sinks into paper and leather alike */
+  #caseFile.theme-daily .watermark{
+    color:var(--stamp);
+    opacity:.38;
+    mix-blend-mode:multiply;
+  }
 
-    header p {
-      margin: 6px 0 0;
-      color: var(--muted);
-      font-size: 13px;
-    }
+  /* image hero — the FF14 screenshot is the star, so it gets the most vertical room */
+  .cf-image-wrap{
+    flex:1 1 auto;
+    min-height:0;
+    position:relative;
+    border:1px solid var(--line);
+    background:rgba(0,0,0,.12);
+    overflow:hidden;
+  }
+  #caseFile.theme-tactical .cf-image-wrap{ border-color:rgba(255,255,255,.22); }
 
-    main {
-      display: grid;
-      grid-template-columns: 360px 1fr;
-      gap: 20px;
-      padding: 20px;
-      align-items: start;
-    }
+  /* ---- stamp: reworked as a distressed official field seal ---- */
+  .stamp-wrap{
+    position:relative;
+    width:30%;
+    aspect-ratio:1/1;
+    flex:none;
+    transform:rotate(-7deg);
+    color:var(--stamp);
+    mix-blend-mode:multiply;
+  }
+  #caseFile.theme-tactical .stamp-wrap{
+    color:#ff6b52;
+    mix-blend-mode:screen;
+  }
+  .stamp-ring-outer, .stamp-ring-inner{
+    position:absolute;
+    border-radius:50%;
+    border:1px solid currentColor;
+  }
+  .stamp-ring-outer{ inset:0; border-width:3px; filter:url(#stampGrunge); }
+  .stamp-ring-inner{ inset:11%; opacity:.8; filter:url(#stampGrunge); }
+  .stamp-content{
+    position:absolute; inset:0;
+    display:flex; flex-direction:column; align-items:center; justify-content:center;
+    text-align:center;
+    mix-blend-mode:normal;
+    color:var(--stamp);
+    padding:0 12%;
+  }
+  #caseFile.theme-tactical .stamp-content{ color:#ff8069; }
+  .stamp-eyebrow{ font-size:.5rem; letter-spacing:.22em; opacity:.7; font-weight:600; line-height:1.5; }
+  .stamp-divider{ width:26%; height:1px; background:currentColor; opacity:.55; margin:.25rem 0; }
+  .stamp-date{ font-size:1.05rem; font-weight:700; letter-spacing:.02em; line-height:1.15; }
+  .stamp-fileno{ font-size:.6rem; letter-spacing:.12em; font-weight:600; margin-top:.1rem; }
 
-    .controls {
-      background: var(--panel);
-      border: 1px solid #ddd;
-      border-radius: 12px;
-      padding: 16px;
-      position: sticky;
-      top: 20px;
-    }
-
-    .controls h2 {
-      margin: 0 0 12px;
-      font-size: 16px;
-      border-bottom: 1px solid #ddd;
-      padding-bottom: 8px;
-    }
-
-    .field {
-      margin-bottom: 12px;
-    }
-
-    label {
-      display: block;
-      font-size: 12px;
-      font-weight: 700;
-      letter-spacing: 0.05em;
-      margin-bottom: 4px;
-      color: #333;
-    }
-
-    input[type="text"],
-    input[type="date"],
-    textarea,
-    select {
-      width: 100%;
-      border: 1px solid #cfd3da;
-      border-radius: 8px;
-      padding: 8px 10px;
-      font-family: "IBM Plex Sans JP", sans-serif;
-      font-size: 14px;
-      background: #fff;
-    }
-
-    textarea {
-      min-height: 84px;
-      resize: vertical;
-    }
-
-    input[type="range"] {
-      width: 100%;
-    }
-
-    .check-list {
-      display: grid;
-      gap: 6px;
-      font-size: 13px;
-    }
-
-    .check-list label {
-      display: flex;
-      gap: 8px;
-      align-items: center;
-      font-weight: 500;
-      letter-spacing: 0;
-      margin: 0;
-    }
-
-    .meta-box {
-      background: #f7f7f7;
-      border: 1px solid #ddd;
-      border-radius: 8px;
-      padding: 10px;
-      font-family: "JetBrains Mono", monospace;
-      font-size: 13px;
-      margin-bottom: 12px;
-    }
-
-    button {
-      width: 100%;
-      border: 0;
-      border-radius: 10px;
-      padding: 12px;
-      font-weight: 700;
-      cursor: pointer;
-      background: #222;
-      color: #fff;
-      font-family: "IBM Plex Sans JP", sans-serif;
-      font-size: 14px;
-    }
-
-    button:hover {
-      opacity: 0.88;
-    }
-
-    .preview-wrap {
-      background: var(--panel);
-      border: 1px solid #ddd;
-      border-radius: 12px;
-      padding: 16px;
-      overflow: auto;
-    }
-
-    .preview-wrap h2 {
-      margin: 0 0 12px;
-      font-size: 16px;
-    }
-
-    canvas {
-      display: block;
-      width: min(540px, 100%);
-      height: auto;
-      border: 1px solid #ddd;
-      background: #eef0f2;
-    }
-
-    .note {
-      font-size: 12px;
-      color: var(--muted);
-      line-height: 1.6;
-      margin-top: 10px;
-    }
-
-    @media (max-width: 900px) {
-      main {
-        grid-template-columns: 1fr;
-      }
-
-      .controls {
-        position: static;
-      }
-    }
-  </style>
+  .check-icon{ width:11px;height:11px; flex:none; }
+  .line-clamp-3{ display:-webkit-box; -webkit-line-clamp:3; -webkit-box-orient:vertical; overflow:hidden; }
+  .line-clamp-2{ display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; }
+  .field-fixed-4{
+    display:-webkit-box;
+    -webkit-line-clamp:4;
+    -webkit-box-orient:vertical;
+    overflow:hidden;
+    line-height:1.25;
+    height:5em;
+  }
+</style>
 </head>
+<body class="min-h-screen">
 
-<body>
-  <header>
-    <h1>FFXIV Case File Generator</h1>
-    <p>Case file style character card generator. Work in progress.</p>
-  </header>
+<!-- distressed-edge filter used by the stamp rings -->
+<svg width="0" height="0" style="position:absolute;overflow:hidden">
+  <filter id="stampGrunge" x="-30%" y="-30%" width="160%" height="160%">
+    <feTurbulence type="fractalNoise" baseFrequency="0.85" numOctaves="2" seed="11" result="noise"/>
+    <feDisplacementMap in="SourceGraphic" in2="noise" scale="3.2"/>
+  </filter>
+</svg>
 
-  <main>
-    <section class="controls">
-      <h2>Input</h2>
+<div class="max-w-7xl mx-auto px-5 py-8">
 
-      <div class="meta-box">
-        FILE NO. <span id="fileNoView">001</span><br>
-        Auto numbering: ON
+  <div class="border-b border-[var(--ink)] pb-4 mb-8 flex items-end justify-between">
+    <div>
+      <div class="cp-label mb-1">CLASSIFIED RECORDS DIVISION</div>
+      <h1 class="font-display text-3xl md:text-4xl font-bold tracking-wide2">FFXIV CASE FILE GENERATOR</h1>
+    </div>
+    <button id="downloadBtn" class="font-display text-xs tracking-wide2 border-2 border-[var(--ink)] px-4 py-2 bg-[var(--ink)] text-[#f0eee3] hover:bg-transparent hover:text-[var(--ink)] transition-colors">
+      ⬇ DOWNLOAD CASE FILE
+    </button>
+  </div>
+
+  <div class="grid grid-cols-1 lg:grid-cols-[400px_1fr] gap-6 items-start">
+
+    <!-- ============ CONTROL PANEL ============ -->
+    <div class="border border-[var(--line)] bg-[#f4f2ea] p-5">
+      <div class="mb-5 pb-3 border-b border-[var(--line)]">
+        <h2 class="font-display text-xl font-semibold tracking-wide2">CONTROL PANEL</h2>
+        <p class="cp-label mt-1 mb-0">COMPILE SUBJECT DOSSIER</p>
       </div>
 
-      <div class="field">
-        <label for="imageInput">SCREENSHOT</label>
-        <input id="imageInput" type="file" accept="image/*">
-      </div>
-
-      <div class="field">
-        <label for="imageScale">IMAGE SCALE</label>
-        <input id="imageScale" type="range" min="0.5" max="2.5" step="0.01" value="1">
-      </div>
-
-      <div class="field">
-        <label for="imageX">IMAGE X POSITION</label>
-        <input id="imageX" type="range" min="-500" max="500" step="1" value="0">
-      </div>
-
-      <div class="field">
-        <label for="imageY">IMAGE Y POSITION</label>
-        <input id="imageY" type="range" min="-500" max="500" step="1" value="0">
-      </div>
-
-      <div class="field">
-        <label for="subjectName">SUBJECT NAME</label>
-        <input id="subjectName" type="text" value="KOMAKO SERIES">
-      </div>
-
-      <div class="field">
-        <label for="race">RACE</label>
-        <input id="race" type="text" value="MIQO'TE">
-      </div>
-
-      <div class="field">
-        <label for="dcWorld">DC / WORLD</label>
-        <input id="dcWorld" type="text" value="GAIA / FENRIR">
-      </div>
-
-      <div class="field">
-        <label for="mainJob">MAIN ROLE / JOB</label>
-        <input id="mainJob" type="text" value="TANK / PALADIN">
-      </div>
-
-      <div class="field">
-        <label for="dateInput">DATE LOGGED</label>
-        <input id="dateInput" type="date">
-      </div>
-
-      <div class="field">
-        <label>ACTIVITY</label>
-        <div class="check-list">
-          <label><input class="activity" type="checkbox" value="SNS CONTACT" checked> SNS CONTACT</label>
-          <label><input class="activity" type="checkbox" value="IN-GAME PLAY" checked> IN-GAME PLAY</label>
-          <label><input class="activity" type="checkbox" value="PHOTO SESSION" checked> PHOTO SESSION</label>
-          <label><input class="activity" type="checkbox" value="PVP" checked> PVP</label>
-          <label><input class="activity" type="checkbox" value="HIGH-END CONTENT"> HIGH-END CONTENT</label>
+      <!-- screenshot -->
+      <div class="mb-4">
+        <label class="cp-label">SUBJECT SCREENSHOT</label>
+        <div class="flex items-center gap-3">
+          <div id="thumbPreview" class="w-16 h-16 bg-[#ddd8c6] border border-[var(--line)] flex items-center justify-center text-[9px] text-[var(--ink-soft)] overflow-hidden">NO IMG</div>
+          <label class="chk-btn cursor-pointer">
+            <span>UPLOAD IMAGE</span>
+            <input type="file" id="imageInput" accept="image/*" class="hidden">
+          </label>
         </div>
       </div>
 
-      <div class="field">
-        <label>STYLE</label>
-        <div class="check-list">
-          <label><input class="styleCheck" type="checkbox" value="CASUAL PACE" checked> CASUAL PACE</label>
-          <label><input class="styleCheck" type="checkbox" value="SLOW CONNECTION" checked> SLOW CONNECTION</label>
+      <!-- name -->
+      <div class="mb-4">
+        <label class="cp-label">CHARACTER NAME</label>
+        <input id="nameInput" type="text" class="cp-input" value="KOMAKO SERIES">
+      </div>
+
+      <!-- race -->
+      <div class="mb-4">
+        <label class="cp-label">RACE</label>
+        <select id="raceSelect" class="cp-select">
+          <option value="A">A</option>
+          <option value="B">B</option>
+          <option value="C">C</option>
+          <option value="D">D</option>
+          <option value="E">E</option>
+          <option value="F">F</option>
+        </select>
+      </div>
+
+      <!-- dc / world -->
+      <div class="grid grid-cols-2 gap-3 mb-4">
+        <div>
+          <label class="cp-label">DC</label>
+          <select id="dcSelect" class="cp-select">
+            <option>DC-1</option><option>DC-2</option><option>DC-3</option><option>DC-4</option><option>DC-5</option>
+          </select>
+        </div>
+        <div>
+          <label class="cp-label">WORLD</label>
+          <select id="worldSelect" class="cp-select">
+            <option>WORLD-1</option><option>WORLD-2</option><option>WORLD-3</option><option>WORLD-4</option><option>WORLD-5</option>
+          </select>
         </div>
       </div>
 
-      <div class="field">
-        <label for="behavior">BEHAVIOR PATTERN</label>
-        <textarea id="behavior">Bright and unreserved on first contact.
-Responsive to casual play,
-both battle and non-battle.</textarea>
+      <!-- role / job -->
+      <div class="grid grid-cols-2 gap-3 mb-5">
+        <div>
+          <label class="cp-label">ROLE</label>
+          <select id="roleSelect" class="cp-select">
+            <option>ROLE-1</option><option>ROLE-2</option><option>ROLE-3</option><option>ROLE-4</option><option>ROLE-5</option>
+          </select>
+        </div>
+        <div>
+          <label class="cp-label">JOB</label>
+          <select id="jobSelect" class="cp-select">
+            <option>JOB-1</option><option>JOB-2</option><option>JOB-3</option><option>JOB-4</option><option>JOB-5</option>
+          </select>
+        </div>
       </div>
 
-      <div class="field">
-        <label for="remarks">REMARKS</label>
-        <textarea id="remarks">Highly responsive to screenshots
-and glamour talk.</textarea>
+      <!-- activity : order = SNS CONTACT > IN-GAME PLAY > PHOTO SESSION > PVP > RAID -->
+      <div class="mb-5">
+        <label class="cp-label">ACTIVITY</label>
+        <div class="grid grid-cols-2 gap-2" id="activityGroup">
+          <div class="chk-btn checked" data-value="SNS CONTACT"><span class="chk-box"><svg viewBox="0 0 10 10"><path d="M1 5 L4 8 L9 1" stroke="currentColor" stroke-width="1.6" fill="none"/></svg></span><span>SNS CONTACT</span></div>
+          <div class="chk-btn checked" data-value="IN-GAME PLAY"><span class="chk-box"><svg viewBox="0 0 10 10"><path d="M1 5 L4 8 L9 1" stroke="currentColor" stroke-width="1.6" fill="none"/></svg></span><span>IN-GAME PLAY</span></div>
+          <div class="chk-btn checked" data-value="PHOTO SESSION"><span class="chk-box"><svg viewBox="0 0 10 10"><path d="M1 5 L4 8 L9 1" stroke="currentColor" stroke-width="1.6" fill="none"/></svg></span><span>PHOTO SESSION</span></div>
+          <div class="chk-btn checked" data-value="PVP"><span class="chk-box"><svg viewBox="0 0 10 10"><path d="M1 5 L4 8 L9 1" stroke="currentColor" stroke-width="1.6" fill="none"/></svg></span><span>PVP</span></div>
+          <div class="chk-btn" data-value="RAID"><span class="chk-box"><svg viewBox="0 0 10 10"><path d="M1 5 L4 8 L9 1" stroke="currentColor" stroke-width="1.6" fill="none"/></svg></span><span>RAID</span></div>
+        </div>
       </div>
 
-      <button id="downloadBtn">PNG SAVE</button>
+      <!-- style -->
+      <div class="mb-5">
+        <label class="cp-label">STYLE</label>
+        <div class="grid grid-cols-2 gap-2" id="styleGroup">
+          <div class="chk-btn checked" data-value="CASUAL PACE"><span class="chk-box"><svg viewBox="0 0 10 10"><path d="M1 5 L4 8 L9 1" stroke="currentColor" stroke-width="1.6" fill="none"/></svg></span><span>CASUAL PACE</span></div>
+          <div class="chk-btn checked" data-value="SLOW CONNECTION"><span class="chk-box"><svg viewBox="0 0 10 10"><path d="M1 5 L4 8 L9 1" stroke="currentColor" stroke-width="1.6" fill="none"/></svg></span><span>SLOW CONNECTION</span></div>
+          <div class="chk-btn" data-value="CHAT FRIENDLY"><span class="chk-box"><svg viewBox="0 0 10 10"><path d="M1 5 L4 8 L9 1" stroke="currentColor" stroke-width="1.6" fill="none"/></svg></span><span>CHAT FRIENDLY</span></div>
+          <div class="chk-btn" data-value="PHOTO FOCUSED"><span class="chk-box"><svg viewBox="0 0 10 10"><path d="M1 5 L4 8 L9 1" stroke="currentColor" stroke-width="1.6" fill="none"/></svg></span><span>PHOTO FOCUSED</span></div>
+          <div class="chk-btn" data-value="LOW FREQUENCY"><span class="chk-box"><svg viewBox="0 0 10 10"><path d="M1 5 L4 8 L9 1" stroke="currentColor" stroke-width="1.6" fill="none"/></svg></span><span>LOW FREQUENCY</span></div>
+          <div class="chk-btn" data-value="PLANNED PLAY"><span class="chk-box"><svg viewBox="0 0 10 10"><path d="M1 5 L4 8 L9 1" stroke="currentColor" stroke-width="1.6" fill="none"/></svg></span><span>PLANNED PLAY</span></div>
+        </div>
+      </div>
 
-      <p class="note">
-        FILE NO. はPNG保存時に自動で次の番号へ進みます。999の次は001に戻ります。
-      </p>
-    </section>
+      <!-- background pattern -->
+      <div class="mb-5">
+        <label class="cp-label">BACKGROUND PATTERN</label>
+        <div class="grid grid-cols-3 gap-2" id="bgGroup">
+          <div class="bg-swatch active" data-theme="theme-tactical">
+            <div class="bg-preview" style="background-color:#050b16; background-image:radial-gradient(ellipse at 50% 20%, rgba(75,155,255,.7), rgba(9,20,42,0) 65%), radial-gradient(circle at center, rgba(150,196,255,.55) .5px, transparent 1px); background-size:100%, 4px 4px;"></div>
+            TACTICAL BLUE DOT
+          </div>
+          <div class="bg-swatch" data-theme="theme-classified">
+            <div class="bg-preview" style="background-color:#ddd2ab; background-image:radial-gradient(ellipse at 30% 30%, rgba(133,103,55,.3), transparent 55%), radial-gradient(ellipse at center, transparent 45%, rgba(54,39,19,.5) 100%);"></div>
+            CLASSIFIED TEXTURE
+          </div>
+          <div class="bg-swatch" data-theme="theme-daily">
+            <div class="bg-preview" style="background-color:#ffffff; background-image:linear-gradient(135deg, rgba(255,255,255,0) 8%, rgba(248,206,209,.8) 52%, rgba(219,201,235,.75) 100%);"></div>
+            DAILY CHRONICLE
+          </div>
+        </div>
+      </div>
 
-    <section class="preview-wrap">
-      <h2>Preview</h2>
-      <canvas id="cardCanvas" width="1080" height="1350"></canvas>
-      <p class="note">
-        これは v0.1 の仮レイアウトです。ここからクリスタ版の見た目に寄せていきます。
-      </p>
-    </section>
-  </main>
+      <!-- behavior -->
+      <div class="mb-4">
+        <label class="cp-label">BEHAVIOR PATTERN</label>
+        <textarea id="behaviorInput" class="cp-textarea" rows="3" maxlength="150">BRIGHT AND UNRESERVED ON FIRST CONTACT. RESPONSIVE TO CASUAL PLAY, BOTH BATTLE AND NON-BATTLE.</textarea>
+      </div>
 
-  <script>
-    const canvas = document.getElementById("cardCanvas");
-    const ctx = canvas.getContext("2d");
+      <!-- remarks -->
+      <div class="mb-5">
+        <label class="cp-label">REMARKS</label>
+        <textarea id="remarksInput" class="cp-textarea" rows="2" maxlength="150">HIGHLY RESPONSIVE TO SCREENSHOTS AND GLAMOUR TALK.</textarea>
+      </div>
 
-    const W = canvas.width;
-    const H = canvas.height;
+      <!-- date / file no -->
+      <div class="grid grid-cols-2 gap-3 items-end mb-5">
+        <div>
+          <label class="cp-label">DATE LOGGED</label>
+          <input id="dateInput" type="date" class="cp-input">
+        </div>
+        <div>
+          <label class="cp-label">FILE NO. (001-999)</label>
+          <input id="fileNoInput" type="number" min="1" max="999" class="cp-input" value="1">
+        </div>
+      </div>
 
-    const fileNoView = document.getElementById("fileNoView");
-    const imageInput = document.getElementById("imageInput");
-    const imageScale = document.getElementById("imageScale");
-    const imageX = document.getElementById("imageX");
-    const imageY = document.getElementById("imageY");
-    const subjectName = document.getElementById("subjectName");
-    const race = document.getElementById("race");
-    const dcWorld = document.getElementById("dcWorld");
-    const mainJob = document.getElementById("mainJob");
-    const dateInput = document.getElementById("dateInput");
-    const behavior = document.getElementById("behavior");
-    const remarks = document.getElementById("remarks");
-    const downloadBtn = document.getElementById("downloadBtn");
+      <!-- output format -->
+      <div>
+        <label class="cp-label">OUTPUT FORMAT</label>
+        <div class="grid grid-cols-3 gap-2" id="formatGroup">
+          <div class="chk-btn checked" data-format="png"><span class="chk-box"><svg viewBox="0 0 10 10"><path d="M1 5 L4 8 L9 1" stroke="currentColor" stroke-width="1.6" fill="none"/></svg></span><span>PNG</span></div>
+          <div class="chk-btn" data-format="jpg"><span class="chk-box"><svg viewBox="0 0 10 10"><path d="M1 5 L4 8 L9 1" stroke="currentColor" stroke-width="1.6" fill="none"/></svg></span><span>JPG</span></div>
+          <div class="chk-btn" data-format="webp"><span class="chk-box"><svg viewBox="0 0 10 10"><path d="M1 5 L4 8 L9 1" stroke="currentColor" stroke-width="1.6" fill="none"/></svg></span><span>WEBP</span></div>
+        </div>
+      </div>
+    </div>
 
-    let uploadedImage = null;
+    <!-- ============ CASE FILE OUTPUT (3:4 portrait, image-forward) ============ -->
+    <div id="caseFileOuter">
+      <div id="caseFile" class="theme-tactical border border-[var(--line)]">
 
-    const confidentialStampImg = new Image();
-    const dateStampBaseImg = new Image();
+        <div class="cf-inner">
+          <!-- header -->
+          <div class="cf-line flex items-end justify-between border-b-2 border-[var(--ink)] pb-2 flex-none">
+            <h2 id="outTitle" class="font-display text-2xl md:text-3xl font-bold tracking-wide2">CASE FILE</h2>
+            <div class="text-right font-display text-xs md:text-sm tracking-wide2 leading-relaxed">
+              <div><span id="outTitleShort">FILE</span> NO. <span id="outFileNoTop">001</span></div>
+              <div class="cf-soft text-[10px] opacity-70">STATUS: ACTIVE</div>
+            </div>
+          </div>
 
-    let confidentialStampReady = false;
-    let dateStampBaseReady = false;
+          <!-- MAIN AREA (~70%): 4:5 hero image, full-bleed vertically, left / info column, right -->
+          <div class="min-h-0 flex gap-4 relative" style="flex:7 1 0%;">
+            <!-- CONFIDENTIAL watermark: sits in FRONT of the photo and the info text, crossing their
+                 shared border on a bold diagonal. It never uses a flat opaque fill — the letterforms are
+                 hollow (transparent fill + thin stroke) and blended (multiply/overlay, per theme) so the
+                 photo's detail and the info text both stay fully readable underneath. -->
+            <div class="watermark" id="watermarkText">CONFIDENTIAL</div>
 
-    confidentialStampImg.onload = () => {
-      confidentialStampReady = true;
-      render();
-    };
-    dateStampBaseImg.onload = () => {
-      dateStampBaseReady = true;
-      render();
-    };
-    
-    confidentialStampImg.src = "assets/stamp_confidential.png";
-    dateStampBaseImg.src = "assets/stamp_date_base.png";
-    
-    function getFileNo() {
-      const saved = localStorage.getItem("casefile_file_no");
-      let n = parseInt(saved || "1", 10);
-      if (Number.isNaN(n) || n < 1 || n > 999) n = 1;
-      return n;
-    }
+            <!-- hero screenshot : the undisputed star, shown clean — only the watermark crosses over it -->
+            <div class="cf-image-wrap" style="flex:0 0 auto; aspect-ratio:4/5; align-self:stretch;">
+              <img id="outImage" src="" alt="" class="w-full h-full object-cover hidden">
+              <div id="outImagePlaceholder" class="absolute inset-0 flex items-center justify-center">
+                <span class="cf-soft text-xs tracking-wide2">NO IMAGE UPLOADED</span>
+              </div>
+            </div>
 
-    function setFileNo(n) {
-      if (n > 999) n = 1;
-      if (n < 1) n = 1;
-      localStorage.setItem("casefile_file_no", String(n));
-      fileNoView.textContent = formatFileNo(n);
-    }
+            <!-- info column : name / race / dc-world / role-job / activity / style, spaced to breathe -->
+            <div class="flex-1 min-w-0 flex flex-col gap-3.5 py-1">
+              <div class="flex-none">
+                <div class="cp-label cf-soft !mb-0.5 !text-[9px]">NAME</div>
+                <div id="outName" class="font-semibold tracking-wide text-sm md:text-base truncate">KOMAKO SERIES</div>
+              </div>
 
-    function nextFileNo() {
-      const current = getFileNo();
-      const next = current >= 999 ? 1 : current + 1;
-      setFileNo(next);
-    }
+              <div class="flex-none grid grid-cols-2 gap-x-3 gap-y-2 text-[10px] md:text-[11px]">
+                <div><div class="cp-label cf-soft !mb-0.5 !text-[9px]">RACE</div><div id="outRace" class="font-semibold tracking-wide">A</div></div>
+                <div><div class="cp-label cf-soft !mb-0.5 !text-[9px]">DC / WORLD</div><div id="outDcWorld" class="font-semibold tracking-wide truncate">DC-1 / WORLD-1</div></div>
+                <div class="col-span-2"><div class="cp-label cf-soft !mb-0.5 !text-[9px]">ROLE / JOB</div><div id="outRoleJob" class="font-semibold tracking-wide truncate">ROLE-1 / JOB-1</div></div>
+              </div>
 
-    function formatFileNo(n) {
-      return String(n).padStart(3, "0");
-    }
+              <div class="flex-none cf-line border-t pt-2 grid grid-cols-2 gap-x-3 text-[10px] md:text-[11px]">
+                <div>
+                  <div class="cp-label cf-soft !mb-1 !text-[9px]">ACTIVITY</div>
+                  <ul id="outActivity" class="space-y-1"></ul>
+                </div>
+                <div>
+                  <div class="cp-label cf-soft !mb-1 !text-[9px]">STYLE</div>
+                  <ul id="outStyle" class="space-y-1"></ul>
+                </div>
+              </div>
+            </div>
+          </div>
 
-    function setToday() {
-      const today = new Date();
-      const yyyy = today.getFullYear();
-      const mm = String(today.getMonth() + 1).padStart(2, "0");
-      const dd = String(today.getDate()).padStart(2, "0");
-      dateInput.value = `${yyyy}-${mm}-${dd}`;
-    }
+          <!-- FOOTER AREA (~30%): full-width behavior / remarks, stamp anchored bottom-right like a wax seal -->
+          <div class="min-h-0 cf-line border-t-2 border-[var(--ink)]" style="flex:3 1 0%;">
+            <div class="h-full flex flex-col justify-center gap-2 text-[10px] md:text-[11px] leading-snug pt-2" style="padding-right:28%;">
+              <div>
+                <div class="cp-label cf-soft !mb-1 !text-[9px]">BEHAVIOR PATTERN</div>
+                <p id="outBehavior" class="field-fixed-4">BRIGHT AND UNRESERVED ON FIRST CONTACT.</p>
+              </div>
+              <div>
+                <div class="cp-label cf-soft !mb-1 !text-[9px]">REMARKS</div>
+                <p id="outRemarks" class="field-fixed-4">HIGHLY RESPONSIVE TO SCREENSHOTS.</p>
+              </div>
+            </div>
+          </div>
 
-    function formatDateForStamp(value) {
-      if (!value) return "";
-      const [yyyy, mm, dd] = value.split("-");
-      const months = ["JAN", "FEB", "MAR", "APR", "MAY", "JUN", "JUL", "AUG", "SEP", "OCT", "NOV", "DEC"];
-      const monthIndex = parseInt(mm, 10) - 1;
-      const mon = months[monthIndex] || "JAN";
-      return `${dd}.${mon}.${yyyy}`;
-    }
+          <!-- copyright: anchored to the card's bottom-left corner, independent of textarea content length -->
+          <div class="text-[8px] tracking-wide2 cf-soft opacity-60" style="position:absolute; left:6%; bottom:2.2%;">©SQUARE ENIX</div>
 
-    function drawTextBlock(text, x, y, maxWidth, lineHeight) {
-      const lines = text.split("\n");
-      lines.forEach((line, index) => {
-        ctx.fillText(line, x, y + index * lineHeight, maxWidth);
-      });
-    }
+          <!-- stamp: absolutely anchored to the card's bottom-right corner so its position never
+               shifts as surrounding text grows or shrinks. Theme color / blend-mode rules on
+               .stamp-wrap (and its descendants) are untouched. -->
+          <div class="stamp-wrap" style="position:absolute; right:3.5%; bottom:3.5%; height:19%; width:auto; aspect-ratio:1/1;">
+            <div class="stamp-ring-outer"></div>
+            <div class="stamp-ring-inner"></div>
+            <div class="stamp-content">
+              <div class="stamp-eyebrow" id="stampTopText">✦ CASE FILE ✦</div>
+              <div class="stamp-divider"></div>
+              <div class="stamp-eyebrow" style="opacity:.6">DATE LOGGED</div>
+              <div id="outStampDate" class="stamp-date">21.JUL.2026</div>
+              <div id="outStampFileNo" class="stamp-fileno">FILE NO. 001</div>
+              <div class="stamp-divider"></div>
+              <div class="stamp-eyebrow" style="font-size:.42rem">AUTHENTICATED COPY</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
 
-    function drawField(label, value, x, y) {
-      ctx.font = "600 15px 'JetBrains Mono', monospace";
-      ctx.fillStyle = "#6b7280";
-      ctx.fillText(label, x, y);
+  </div>
+</div>
 
-      ctx.font = "600 25px 'JetBrains Mono', monospace";
-      ctx.fillStyle = "#222";
-      ctx.fillText(value, x, y + 34);
-    }
+<script>
+(function(){
+  const $ = (id) => document.getElementById(id);
 
-    function drawCheckLine(checked, text, x, y) {
-      ctx.font = "500 22px 'JetBrains Mono', monospace";
-      ctx.fillStyle = "#222";
-      ctx.fillText(`${checked ? "☑" : "☐"}  ${text}`, x, y);
-    }
+  const checkIconSVG = '<svg class="check-icon" viewBox="0 0 10 10"><path d="M1 5 L4 8 L9 1" stroke="currentColor" stroke-width="1.6" fill="none"/></svg>';
 
-    function drawRotatedStamp(text, x, y, angleDeg) {
-      ctx.save();
-      ctx.translate(x, y);
-      ctx.rotate(angleDeg * Math.PI / 180);
-      ctx.strokeStyle = "rgba(158, 42, 43, 0.52)";
-      ctx.lineWidth = 5;
-      ctx.font = "700 64px 'IBM Plex Sans JP', sans-serif";
-      ctx.textAlign = "center";
-      ctx.strokeText(text, 0, 0);
-      ctx.fillStyle = "rgba(158, 42, 43, 0.18)";
-      ctx.fillText(text, 0, 0);
-      ctx.restore();
-      ctx.textAlign = "left";
-    }
-
-function drawConfidentialStampImage() {
-  if (!confidentialStampReady) {
-    drawRotatedStamp("CONFIDENTIAL", 330, 840, -12);
-    return;
+  function pad3(n){
+    n = Math.max(1, Math.min(999, parseInt(n||1,10)));
+    return String(n).padStart(3,'0');
   }
 
- const x = 165;
-  const y = 750;
-  const w = 520;
-  const h = 190;
-
-  ctx.save();
-  ctx.globalAlpha = 0.28;
-  ctx.drawImage(confidentialStampImg, x, y, w, h);
-  ctx.restore();
-}
-    
-function drawCircleStamp(fileNo, dateText) {
-  const x = 790;
-  const y = 1085;
-  const size = 165;
-
-  if (dateStampBaseReady) {
-    ctx.drawImage(dateStampBaseImg, x, y, size, size);
-  } else {
-    ctx.save();
-    ctx.translate(x + size / 2, y + size / 2);
-    ctx.strokeStyle = "rgba(158, 42, 43, 0.46)";
-    ctx.fillStyle = "rgba(158, 42, 43, 0.46)";
-    ctx.lineWidth = 3;
-
-    ctx.beginPath();
-    ctx.arc(0, 0, 74, 0, Math.PI * 2);
-    ctx.stroke();
-
-    ctx.beginPath();
-    ctx.arc(0, 0, 62, 0, Math.PI * 2);
-    ctx.stroke();
-
-    ctx.font = "700 16px 'JetBrains Mono', monospace";
-    ctx.textAlign = "center";
-    ctx.fillText("DATE LOGGED", 0, -32);
-    ctx.restore();
-    ctx.textAlign = "left";
+  function formatStampDate(dateStr){
+    if(!dateStr) return '';
+    const d = new Date(dateStr + 'T00:00:00');
+    const months = ['JAN','FEB','MAR','APR','MAY','JUN','JUL','AUG','SEP','OCT','NOV','DEC'];
+    return String(d.getDate()).padStart(2,'0') + '.' + months[d.getMonth()] + '.' + d.getFullYear();
   }
 
-  const cx = x + size / 2;
-  const cy = y + size / 2;
+  function initDate(){
+    const today = new Date();
+    const iso = today.toISOString().slice(0,10);
+    $('dateInput').value = iso;
+  }
 
-  ctx.save();
-  ctx.textAlign = "center";
-  ctx.fillStyle = "rgba(158, 42, 43, 0.58)";
+  function syncFileNo(){
+    const val = pad3($('fileNoInput').value);
+    $('outFileNoTop').textContent = val;
+    $('outStampFileNo').textContent = 'FILE NO. ' + val;
+  }
 
-  ctx.font = "700 18px 'JetBrains Mono', monospace";
-  ctx.fillText(dateText, cx, cy + 8);
+  function syncDate(){
+    const formatted = formatStampDate($('dateInput').value);
+    $('outStampDate').textContent = formatted;
+  }
 
-  ctx.font = "700 13px 'JetBrains Mono', monospace";
-  ctx.fillText(`FILE NO.${fileNo}`, cx, cy + 36);
+  function syncName(){
+    $('outName').textContent = $('nameInput').value.toUpperCase();
+  }
 
-  ctx.restore();
-  ctx.textAlign = "left";
-}
+  function syncRace(){
+    $('outRace').textContent = $('raceSelect').value;
+  }
 
-    function drawPlaceholderPhoto(x, y, w, h) {
-      ctx.fillStyle = "#d9dde3";
-      ctx.fillRect(x, y, w, h);
-      ctx.fillStyle = "#8a9099";
-      ctx.font = "600 24px 'IBM Plex Sans JP', sans-serif";
-      ctx.textAlign = "center";
-      ctx.fillText("SCREENSHOT", x + w / 2, y + h / 2);
-      ctx.textAlign = "left";
-    }
+  function syncDcWorld(){
+    $('outDcWorld').textContent = $('dcSelect').value + ' / ' + $('worldSelect').value;
+  }
 
-    function drawUploadedImage(x, y, w, h) {
-      if (!uploadedImage) {
-        drawPlaceholderPhoto(x, y, w, h);
-        return;
+  function syncRoleJob(){
+    $('outRoleJob').textContent = $('roleSelect').value + ' / ' + $('jobSelect').value;
+  }
+
+  function syncBehavior(){
+    $('outBehavior').textContent = $('behaviorInput').value.toUpperCase();
+  }
+
+  function syncRemarks(){
+    $('outRemarks').textContent = $('remarksInput').value.toUpperCase();
+  }
+
+  function renderCheckGroup(groupId, outId){
+    const group = $(groupId);
+    const out = $(outId);
+    out.innerHTML = '';
+    group.querySelectorAll('.chk-btn').forEach(btn => {
+      if(btn.classList.contains('checked')){
+        const li = document.createElement('li');
+        li.className = 'flex items-center gap-1.5';
+        li.innerHTML = checkIconSVG + '<span>' + btn.dataset.value + '</span>';
+        out.appendChild(li);
       }
+    });
+  }
 
-      ctx.save();
-      ctx.beginPath();
-      ctx.rect(x, y, w, h);
-      ctx.clip();
-
-      const scale = parseFloat(imageScale.value);
-      const offsetX = parseFloat(imageX.value);
-      const offsetY = parseFloat(imageY.value);
-
-      const imgRatio = uploadedImage.width / uploadedImage.height;
-      const frameRatio = w / h;
-
-      let drawW;
-      let drawH;
-
-      if (imgRatio > frameRatio) {
-        drawH = h * scale;
-        drawW = drawH * imgRatio;
-      } else {
-        drawW = w * scale;
-        drawH = drawW / imgRatio;
-      }
-
-      const dx = x + (w - drawW) / 2 + offsetX;
-      const dy = y + (h - drawH) / 2 + offsetY;
-
-      ctx.drawImage(uploadedImage, dx, dy, drawW, drawH);
-      ctx.restore();
-    }
-
-    function render() {
-      const fileNo = formatFileNo(getFileNo());
-      const dateText = formatDateForStamp(dateInput.value);
-
-      fileNoView.textContent = fileNo;
-
-      ctx.clearRect(0, 0, W, H);
-
-      // Background
-      ctx.fillStyle = "#eef0f2";
-      ctx.fillRect(0, 0, W, H);
-
-      // Subtle paper texture
-      for (let i = 0; i < 1800; i++) {
-        const alpha = Math.random() * 0.025;
-        ctx.fillStyle = `rgba(0, 0, 0, ${alpha})`;
-        ctx.fillRect(Math.random() * W, Math.random() * H, 1, 1);
-      }
-
-      // Layout constants
-      const margin = 45;
-      const headerY = 135;
-      const photoX = 65;
-      const photoY = 170;
-      const photoW = 575;
-      const photoH = 820;
-
-      const rightX = 675;
-      const rightY = 170;
-      const rightW = 340;
-      const rightH = 820;
-
-      const obsX = 65;
-      const obsY = 1030;
-      const obsW = 950;
-      const obsH = 235;
-
-      // Outer frame
-      ctx.strokeStyle = "#aeb4bd";
-      ctx.lineWidth = 2;
-      ctx.strokeRect(margin, 40, W - margin * 2, H - 80);
-
-      // Header line
-      ctx.beginPath();
-      ctx.moveTo(margin, headerY);
-      ctx.lineTo(W - margin, headerY);
-      ctx.stroke();
-
-      // Header text
-      ctx.fillStyle = "#20242a";
-      ctx.font = "700 62px 'IBM Plex Sans JP', sans-serif";
-      ctx.fillText("CASE FILE", 65, 104);
-
-      ctx.font = "600 18px 'JetBrains Mono', monospace";
-      ctx.fillText(`FILE NO. ${fileNo}`, 805, 76);
-      ctx.fillText("STATUS: ACTIVE", 805, 106);
-
-      // Photo frame
-      ctx.strokeStyle = "#aeb4bd";
-      ctx.lineWidth = 2;
-      ctx.strokeRect(photoX, photoY, photoW, photoH);
-      drawUploadedImage(photoX, photoY, photoW, photoH);
-
-      // Right panel
-      ctx.strokeStyle = "#aeb4bd";
-      ctx.strokeRect(rightX, rightY, rightW, rightH);
-
-      // Right panel divider
-      ctx.beginPath();
-      ctx.moveTo(rightX, 545);
-      ctx.lineTo(rightX + rightW, 545);
-      ctx.stroke();
-
-      // Subject profile
-      ctx.font = "700 26px 'IBM Plex Sans JP', sans-serif";
-      ctx.fillStyle = "#20242a";
-      ctx.fillText("SUBJECT PROFILE", rightX + 24, rightY + 44);
-
-      drawField("SUBJECT NAME", subjectName.value, rightX + 24, rightY + 95);
-      drawField("RACE", race.value, rightX + 24, rightY + 180);
-      drawField("DC / WORLD", dcWorld.value, rightX + 24, rightY + 265);
-      drawField("MAIN ROLE / JOB", mainJob.value, rightX + 24, rightY + 350);
-
-      // Contact protocol
-      ctx.font = "700 25px 'IBM Plex Sans JP', sans-serif";
-      ctx.fillStyle = "#20242a";
-      ctx.fillText("CONTACT PROTOCOL", rightX + 24, 595);
-
-      ctx.font = "700 17px 'JetBrains Mono', monospace";
-      ctx.fillStyle = "#6b7280";
-      ctx.fillText("ACTIVITY", rightX + 24, 640);
-
-      const activityItems = [...document.querySelectorAll(".activity")];
-      let lineY = 675;
-      activityItems.forEach(item => {
-        drawCheckLine(item.checked, item.value, rightX + 24, lineY);
-        lineY += 38;
+  function setupCheckGroup(groupId){
+    $(groupId).querySelectorAll('.chk-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        btn.classList.toggle('checked');
+        if(groupId === 'activityGroup') renderCheckGroup('activityGroup','outActivity');
+        if(groupId === 'styleGroup') renderCheckGroup('styleGroup','outStyle');
       });
+    });
+  }
 
-      ctx.font = "700 17px 'JetBrains Mono', monospace";
-      ctx.fillStyle = "#6b7280";
-      ctx.fillText("STYLE", rightX + 24, lineY + 18);
-
-      lineY += 52;
-      const styleItems = [...document.querySelectorAll(".styleCheck")];
-      styleItems.forEach(item => {
-        drawCheckLine(item.checked, item.value, rightX + 24, lineY);
-        lineY += 38;
+  function setupBgSwatches(){
+    const swatches = document.querySelectorAll('.bg-swatch');
+    const caseFile = $('caseFile');
+    const watermarkText = {
+      'theme-tactical': 'CONFIDENTIAL',
+      'theme-classified': 'CONFIDENTIAL',
+      'theme-daily': 'FIELD RECORD'
+    };
+    const titleText = {
+      'theme-tactical': 'CASE FILE',
+      'theme-classified': 'CASE FILE',
+      'theme-daily': 'TRAVEL LOG'
+    };
+    const stampTopText = {
+      'theme-tactical': '✦ CASE FILE ✦',
+      'theme-classified': '✦ CASE FILE ✦',
+      'theme-daily': '✦ TRAVEL LOG ✦'
+    };
+    swatches.forEach(sw => {
+      sw.addEventListener('click', () => {
+        swatches.forEach(s => s.classList.remove('active'));
+        sw.classList.add('active');
+        caseFile.classList.remove('theme-tactical','theme-classified','theme-daily');
+        caseFile.classList.add(sw.dataset.theme);
+        $('watermarkText').textContent = watermarkText[sw.dataset.theme] || 'CONFIDENTIAL';
+        const title = titleText[sw.dataset.theme] || 'CASE FILE';
+        $('outTitle').textContent = title;
+        $('outTitleShort').textContent = title;
+        $('stampTopText').textContent = stampTopText[sw.dataset.theme] || '✦ CASE FILE ✦';
       });
+    });
+  }
 
-      // Observation record
-      ctx.strokeStyle = "#aeb4bd";
-      ctx.strokeRect(obsX, obsY, obsW, obsH);
-
-      ctx.font = "700 26px 'IBM Plex Sans JP', sans-serif";
-      ctx.fillStyle = "#20242a";
-      ctx.fillText("OBSERVATION RECORD", obsX + 24, obsY + 45);
-
-      ctx.font = "700 17px 'JetBrains Mono', monospace";
-      ctx.fillStyle = "#6b7280";
-      ctx.fillText("BEHAVIOR PATTERN", obsX + 24, obsY + 88);
-
-      ctx.font = "500 22px 'JetBrains Mono', monospace";
-      ctx.fillStyle = "#222";
-      drawTextBlock(behavior.value, obsX + 24, obsY + 122, 520, 31);
-
-      ctx.font = "700 17px 'JetBrains Mono', monospace";
-      ctx.fillStyle = "#6b7280";
-      ctx.fillText("REMARKS", obsX + 590, obsY + 88);
-
-      ctx.font = "500 22px 'JetBrains Mono', monospace";
-      ctx.fillStyle = "#222";
-      drawTextBlock(remarks.value, obsX + 590, obsY + 122, 330, 31);
-
-      // Stamps
-      drawConfidentialStampImage();
-      drawCircleStamp(fileNo, dateText);
-
-      // Copyright
-      ctx.font = "500 12px 'JetBrains Mono', monospace";
-      ctx.fillStyle = "#555";
-      ctx.fillText("© SQUARE ENIX", 840, 1300);
-    }
-
-    imageInput.addEventListener("change", event => {
-      const file = event.target.files[0];
-      if (!file) return;
-
+  function setupImageUpload(){
+    $('imageInput').addEventListener('change', (e) => {
+      const file = e.target.files[0];
+      if(!file) return;
       const reader = new FileReader();
-      reader.onload = e => {
-        const img = new Image();
-        img.onload = () => {
-          uploadedImage = img;
-          render();
-        };
-        img.src = e.target.result;
+      reader.onload = (ev) => {
+        const src = ev.target.result;
+        $('outImage').src = src;
+        $('outImage').classList.remove('hidden');
+        $('outImagePlaceholder').classList.add('hidden');
+        $('thumbPreview').innerHTML = '<img src="'+src+'" class="w-full h-full object-cover">';
       };
       reader.readAsDataURL(file);
     });
+  }
 
-    const inputs = document.querySelectorAll("input, textarea");
-    inputs.forEach(input => {
-      input.addEventListener("input", render);
-      input.addEventListener("change", render);
+  function setupFormatGroup(){
+    const group = $('formatGroup');
+    group.querySelectorAll('.chk-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        group.querySelectorAll('.chk-btn').forEach(b => b.classList.remove('checked'));
+        btn.classList.add('checked');
+      });
     });
+  }
 
-    downloadBtn.addEventListener("click", () => {
-      render();
+  function getSelectedFormat(){
+    const active = document.querySelector('#formatGroup .chk-btn.checked');
+    return active ? active.dataset.format : 'png';
+  }
 
-      const fileNo = formatFileNo(getFileNo());
-      const link = document.createElement("a");
-      link.download = `casefile_${fileNo}.png`;
-      link.href = canvas.toDataURL("image/png");
-      link.click();
+  function setupDownload(){
+    $('downloadBtn').addEventListener('click', () => {
+      const target = $('caseFile');
+      html2canvas(target, { backgroundColor: '#ffffff', scale: 2, useCORS: true }).then(canvas => {
+        const format = getSelectedFormat();
+        const fileNo = pad3($('fileNoInput').value);
+        let mime = 'image/png';
+        let ext = 'png';
+        let quality; // undefined = default (used only by jpeg/webp)
+        if(format === 'jpg'){ mime = 'image/jpeg'; ext = 'jpg'; quality = 0.92; }
+        else if(format === 'webp'){ mime = 'image/webp'; ext = 'webp'; quality = 0.92; }
 
-      nextFileNo();
-      render();
+        const link = document.createElement('a');
+        link.download = 'CASE_FILE_' + fileNo + '.' + ext;
+        link.href = quality !== undefined ? canvas.toDataURL(mime, quality) : canvas.toDataURL(mime);
+        link.click();
+      });
     });
+  }
 
-    setFileNo(getFileNo());
-    setToday();
+  function bindLiveInputs(){
+    $('fileNoInput').addEventListener('input', () => {
+      // keep manual typing within range too
+      let n = parseInt($('fileNoInput').value || '1', 10);
+      if(n > 999) n = 999;
+      if(n < 1) n = 1;
+      $('fileNoInput').value = n;
+      syncFileNo();
+    });
+    $('dateInput').addEventListener('input', syncDate);
+    $('nameInput').addEventListener('input', syncName);
+    $('raceSelect').addEventListener('change', syncRace);
+    $('dcSelect').addEventListener('change', syncDcWorld);
+    $('worldSelect').addEventListener('change', syncDcWorld);
+    $('roleSelect').addEventListener('change', syncRoleJob);
+    $('jobSelect').addEventListener('change', syncRoleJob);
+    $('behaviorInput').addEventListener('input', syncBehavior);
+    $('remarksInput').addEventListener('input', syncRemarks);
+  }
 
-    if (document.fonts) {
-      document.fonts.ready.then(render);
-    } else {
-      render();
-    }
-  </script>
+  function init(){
+    initDate();
+    setupCheckGroup('activityGroup');
+    setupCheckGroup('styleGroup');
+    setupBgSwatches();
+    setupImageUpload();
+    setupFormatGroup();
+    setupDownload();
+    bindLiveInputs();
+
+    syncFileNo();
+    syncDate();
+    syncName();
+    syncRace();
+    syncDcWorld();
+    syncRoleJob();
+    syncBehavior();
+    syncRemarks();
+    renderCheckGroup('activityGroup','outActivity');
+    renderCheckGroup('styleGroup','outStyle');
+  }
+
+  document.addEventListener('DOMContentLoaded', init);
+})();
+</script>
+
 </body>
 </html>
