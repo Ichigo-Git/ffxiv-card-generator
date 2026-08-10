@@ -83,6 +83,7 @@
   }
   .chk-box svg{ width:10px;height:10px; opacity:0; }
   .chk-btn.checked .chk-box svg{ opacity:1; }
+  .chk-label{ line-height:1.2; }
 
   .bg-swatch{
     border:1px solid var(--line);
@@ -168,7 +169,7 @@
   .watermark{
     position:absolute;
     z-index:30;
-    top:67%;
+    top:80%;
     left:52%;
     transform:translate(-50%,-50%) rotate(-14deg);
     font-family:'Stardos Stencil', 'Share Tech Mono', monospace;
@@ -197,6 +198,18 @@
     color:var(--stamp);
     opacity:.4;
     mix-blend-mode:multiply;
+    padding:.4em .65em;
+  }
+  /* the frame lives on a separate ::before layer so the distressed-edge filter (the same
+     one used on the corner stamp's outer ring) only roughens the border, never the text —
+     matched to the stamp's own ring thickness (3px) for a consistent "same ink" feel */
+  #caseFile.theme-classified .watermark::before{
+    content:'';
+    position:absolute;
+    inset:0;
+    border:3px solid currentColor;
+    filter:url(#stampGrunge);
+    pointer-events:none;
   }
   /* TRAVEL NOTE (daily): a soft vintage sepia-brown that sinks into paper and leather alike */
   #caseFile.theme-daily .watermark{
@@ -205,16 +218,71 @@
     mix-blend-mode:multiply;
   }
 
-  /* image hero — the FF14 screenshot is the star, so it gets the most vertical room */
+  /* image hero — the FF14 screenshot is the star, so it gets the most vertical room.
+     The photo itself is draggable/resizable by the user; .cf-image-wrap no longer clips
+     directly so the corner resize handles stay visible even when the photo is scaled
+     past the frame edge — only .cf-image-clip (below) clips the photo itself. */
   .cf-image-wrap{
     flex:1 1 auto;
     min-height:0;
     position:relative;
     border:1px solid var(--line);
     background:rgba(0,0,0,.12);
-    overflow:hidden;
   }
   #caseFile.theme-tactical .cf-image-wrap{ border-color:rgba(255,255,255,.22); }
+
+  .cf-image-clip{
+    position:absolute;
+    inset:0;
+    overflow:hidden;
+  }
+  #outImage{
+    position:absolute;
+    /* Tailwind's preflight sets `img { max-width:100%; height:auto }` globally — left in
+       place, that silently clamps our explicit width while height keeps growing as
+       calculated, which is what was causing the "snags on the frame" distortion. */
+    max-width:none;
+    max-height:none;
+    display:block;
+    cursor:grab;
+    user-select:none;
+    -webkit-user-drag:none;
+    touch-action:none;
+  }
+  #outImage:active{ cursor:grabbing; }
+
+  /* Resize handles + selection box live in a position:fixed overlay OUTSIDE #caseFile,
+     so they're never clipped by the card's own overflow:hidden — even when the photo is
+     scaled far past the frame, the controls stay reachable. Their screen position is
+     computed in JS from the frame's getBoundingClientRect() + the current image box. */
+  #imgHandleLayer{
+    position:fixed;
+    inset:0;
+    pointer-events:none;
+    z-index:9999;
+  }
+  .img-selection-box{
+    position:fixed;
+    border:1.5px dashed var(--ink);
+    display:none;
+    pointer-events:none;
+  }
+  .img-handle{
+    position:fixed;
+    width:14px;
+    height:14px;
+    transform:translate(-50%,-50%);
+    background:#fff;
+    border:2px solid var(--ink);
+    border-radius:2px;
+    display:none;
+    pointer-events:auto;
+    cursor:nwse-resize;
+    touch-action:none;
+  }
+  .img-handle[data-handle="ne"], .img-handle[data-handle="sw"]{ cursor:nesw-resize; }
+  #imgHandleLayer.active .img-handle,
+  #imgHandleLayer.active .img-selection-box{ display:block; }
 
   /* ---- stamp: reworked as a distressed official field seal ---- */
   .stamp-wrap{
@@ -276,10 +344,17 @@
 
 <div class="max-w-7xl mx-auto px-5 py-8">
 
-  <div class="border-b border-[var(--ink)] pb-4 mb-8 flex items-end justify-between">
+  <div class="border-b border-[var(--ink)] pb-4 mb-8 flex items-end justify-between flex-wrap gap-3">
     <div>
-      <div class="cp-label mb-1">CLASSIFIED RECORDS DIVISION</div>
-      <h1 class="font-display text-3xl md:text-4xl font-bold tracking-wide2">FFXIV CASE FILE GENERATOR</h1>
+      <div class="cp-label mb-1" data-i18n="eyebrow">CLASSIFIED RECORDS DIVISION</div>
+      <div class="flex items-center gap-3 flex-wrap">
+        <h1 class="font-display text-3xl md:text-4xl font-bold tracking-wide2">FFXIV CASE FILE GENERATOR</h1>
+        <!-- language toggle: EN is default; structure supports adding more languages (e.g. KO) later -->
+        <div class="flex gap-1" id="langGroup">
+          <div class="chk-btn checked" style="padding:.3rem .65rem; font-size:.62rem;" data-lang="en">EN</div>
+          <div class="chk-btn" style="padding:.3rem .65rem; font-size:.62rem;" data-lang="ja">JA</div>
+        </div>
+      </div>
     </div>
     <button id="downloadBtn" class="font-display text-xs tracking-wide2 border-2 border-[var(--ink)] px-4 py-2 bg-[var(--ink)] text-[#f0eee3] hover:bg-transparent hover:text-[var(--ink)] transition-colors">
       ⬇ DOWNLOAD CASE FILE
@@ -291,17 +366,17 @@
     <!-- ============ CONTROL PANEL ============ -->
     <div class="border border-[var(--line)] bg-[#f4f2ea] p-5">
       <div class="mb-5 pb-3 border-b border-[var(--line)]">
-        <h2 class="font-display text-xl font-semibold tracking-wide2">CONTROL PANEL</h2>
-        <p class="cp-label mt-1 mb-0">COMPILE SUBJECT DOSSIER</p>
+        <h2 class="font-display text-xl font-semibold tracking-wide2" data-i18n="cpTitle">CONTROL PANEL</h2>
+        <p class="cp-label mt-1 mb-0" data-i18n="cpSubtitle">COMPILE SUBJECT DOSSIER</p>
       </div>
 
       <!-- screenshot -->
       <div class="mb-4">
-        <label class="cp-label">SUBJECT SCREENSHOT</label>
+        <label class="cp-label" data-i18n="lblScreenshot">SUBJECT SCREENSHOT</label>
         <div class="flex items-center gap-3">
           <div id="thumbPreview" class="w-16 h-16 bg-[#ddd8c6] border border-[var(--line)] flex items-center justify-center text-[9px] text-[var(--ink-soft)] overflow-hidden">NO IMG</div>
           <label class="chk-btn cursor-pointer">
-            <span>UPLOAD IMAGE</span>
+            <span data-i18n="btnUpload">UPLOAD IMAGE</span>
             <input type="file" id="imageInput" accept="image/*" class="hidden">
           </label>
         </div>
@@ -309,35 +384,55 @@
 
       <!-- name -->
       <div class="mb-4">
-        <label class="cp-label">CHARACTER NAME</label>
+        <label class="cp-label" data-i18n="lblName">CHARACTER NAME</label>
         <input id="nameInput" type="text" class="cp-input" value="KOMAKO SERIES">
       </div>
 
       <!-- race -->
       <div class="mb-4">
-        <label class="cp-label">RACE</label>
+        <label class="cp-label" data-i18n="lblRace">RACE</label>
         <select id="raceSelect" class="cp-select">
-          <option value="A">A</option>
-          <option value="B">B</option>
-          <option value="C">C</option>
-          <option value="D">D</option>
-          <option value="E">E</option>
-          <option value="F">F</option>
+          <option value="hyur-midlander">Hyur / Midlander</option>
+          <option value="hyur-highlander">Hyur / Highlander</option>
+          <option value="elezen-wildwood">Elezen / Wildwood</option>
+          <option value="elezen-duskwight">Elezen / Duskwight</option>
+          <option value="lalafell-plainsfolk">Lalafell / Plainsfolk</option>
+          <option value="lalafell-dunesfolk">Lalafell / Dunesfolk</option>
+          <option value="miqote-seeker">Miqo'te / Seeker</option>
+          <option value="miqote-keeper">Miqo'te / Keeper</option>
+          <option value="roegadyn-seawolf">Roegadyn / Sea Wolf</option>
+          <option value="roegadyn-hellsguard">Roegadyn / Hellsguard</option>
+          <option value="aura-raen">Au Ra / Raen</option>
+          <option value="aura-xaela">Au Ra / Xaela</option>
+          <option value="hrothgar-helion">Hrothgar / Helion</option>
+          <option value="hrothgar-lost">Hrothgar / Lost</option>
+          <option value="viera-rava">Viera / Rava</option>
+          <option value="viera-veena">Viera / Veena</option>
         </select>
       </div>
 
       <!-- dc / world -->
       <div class="grid grid-cols-2 gap-3 mb-4">
         <div>
-          <label class="cp-label">DC</label>
+          <label class="cp-label" data-i18n="lblDc">DC</label>
           <select id="dcSelect" class="cp-select">
-            <option>DC-1</option><option>DC-2</option><option>DC-3</option><option>DC-4</option><option>DC-5</option>
+            <option>Elemental</option>
+            <option>Gaia</option>
+            <option>Mana</option>
+            <option>Meteor</option>
           </select>
         </div>
         <div>
-          <label class="cp-label">WORLD</label>
+          <label class="cp-label" data-i18n="lblWorld">WORLD</label>
           <select id="worldSelect" class="cp-select">
-            <option>WORLD-1</option><option>WORLD-2</option><option>WORLD-3</option><option>WORLD-4</option><option>WORLD-5</option>
+            <option>Aegis</option>
+            <option>Atomos</option>
+            <option>Carbuncle</option>
+            <option>Garuda</option>
+            <option>Gungnir</option>
+            <option>Kujata</option>
+            <option>Tonberry</option>
+            <option>Typhon</option>
           </select>
         </div>
       </div>
@@ -345,47 +440,53 @@
       <!-- role / job -->
       <div class="grid grid-cols-2 gap-3 mb-5">
         <div>
-          <label class="cp-label">ROLE</label>
+          <label class="cp-label" data-i18n="lblRole">ROLE</label>
           <select id="roleSelect" class="cp-select">
-            <option>ROLE-1</option><option>ROLE-2</option><option>ROLE-3</option><option>ROLE-4</option><option>ROLE-5</option>
+            <option value="tank">Tank</option>
+            <option value="healer">Healer</option>
+            <option value="dps">DPS</option>
+            <option value="limited">Limited Job</option>
           </select>
         </div>
         <div>
-          <label class="cp-label">JOB</label>
+          <label class="cp-label" data-i18n="lblJob">JOB</label>
           <select id="jobSelect" class="cp-select">
-            <option>JOB-1</option><option>JOB-2</option><option>JOB-3</option><option>JOB-4</option><option>JOB-5</option>
+            <option value="paladin">Paladin</option>
+            <option value="warrior">Warrior</option>
+            <option value="darkknight">Dark Knight</option>
+            <option value="gunbreaker">Gunbreaker</option>
           </select>
         </div>
       </div>
 
       <!-- activity : order = SNS CONTACT > IN-GAME PLAY > PHOTO SESSION > PVP > RAID -->
       <div class="mb-5">
-        <label class="cp-label">ACTIVITY</label>
+        <label class="cp-label" data-i18n="lblActivity">ACTIVITY</label>
         <div class="grid grid-cols-2 gap-2" id="activityGroup">
-          <div class="chk-btn checked" data-value="SNS CONTACT"><span class="chk-box"><svg viewBox="0 0 10 10"><path d="M1 5 L4 8 L9 1" stroke="currentColor" stroke-width="1.6" fill="none"/></svg></span><span>SNS CONTACT</span></div>
-          <div class="chk-btn checked" data-value="IN-GAME PLAY"><span class="chk-box"><svg viewBox="0 0 10 10"><path d="M1 5 L4 8 L9 1" stroke="currentColor" stroke-width="1.6" fill="none"/></svg></span><span>IN-GAME PLAY</span></div>
-          <div class="chk-btn checked" data-value="PHOTO SESSION"><span class="chk-box"><svg viewBox="0 0 10 10"><path d="M1 5 L4 8 L9 1" stroke="currentColor" stroke-width="1.6" fill="none"/></svg></span><span>PHOTO SESSION</span></div>
-          <div class="chk-btn checked" data-value="PVP"><span class="chk-box"><svg viewBox="0 0 10 10"><path d="M1 5 L4 8 L9 1" stroke="currentColor" stroke-width="1.6" fill="none"/></svg></span><span>PVP</span></div>
-          <div class="chk-btn" data-value="RAID"><span class="chk-box"><svg viewBox="0 0 10 10"><path d="M1 5 L4 8 L9 1" stroke="currentColor" stroke-width="1.6" fill="none"/></svg></span><span>RAID</span></div>
+          <div class="chk-btn checked" data-value="SNS CONTACT"><span class="chk-box"><svg viewBox="0 0 10 10"><path d="M1 5 L4 8 L9 1" stroke="currentColor" stroke-width="1.6" fill="none"/></svg></span><span class="chk-label">SNS CONTACT</span></div>
+          <div class="chk-btn checked" data-value="IN-GAME PLAY"><span class="chk-box"><svg viewBox="0 0 10 10"><path d="M1 5 L4 8 L9 1" stroke="currentColor" stroke-width="1.6" fill="none"/></svg></span><span class="chk-label">IN-GAME PLAY</span></div>
+          <div class="chk-btn checked" data-value="PHOTO SESSION"><span class="chk-box"><svg viewBox="0 0 10 10"><path d="M1 5 L4 8 L9 1" stroke="currentColor" stroke-width="1.6" fill="none"/></svg></span><span class="chk-label">PHOTO SESSION</span></div>
+          <div class="chk-btn checked" data-value="PVP"><span class="chk-box"><svg viewBox="0 0 10 10"><path d="M1 5 L4 8 L9 1" stroke="currentColor" stroke-width="1.6" fill="none"/></svg></span><span class="chk-label">PVP</span></div>
+          <div class="chk-btn" data-value="RAID"><span class="chk-box"><svg viewBox="0 0 10 10"><path d="M1 5 L4 8 L9 1" stroke="currentColor" stroke-width="1.6" fill="none"/></svg></span><span class="chk-label">RAID</span></div>
         </div>
       </div>
 
       <!-- style -->
       <div class="mb-5">
-        <label class="cp-label">STYLE</label>
+        <label class="cp-label" data-i18n="lblStyle">STYLE</label>
         <div class="grid grid-cols-2 gap-2" id="styleGroup">
-          <div class="chk-btn checked" data-value="CASUAL PACE"><span class="chk-box"><svg viewBox="0 0 10 10"><path d="M1 5 L4 8 L9 1" stroke="currentColor" stroke-width="1.6" fill="none"/></svg></span><span>CASUAL PACE</span></div>
-          <div class="chk-btn checked" data-value="SLOW CONNECTION"><span class="chk-box"><svg viewBox="0 0 10 10"><path d="M1 5 L4 8 L9 1" stroke="currentColor" stroke-width="1.6" fill="none"/></svg></span><span>SLOW CONNECTION</span></div>
-          <div class="chk-btn" data-value="CHAT FRIENDLY"><span class="chk-box"><svg viewBox="0 0 10 10"><path d="M1 5 L4 8 L9 1" stroke="currentColor" stroke-width="1.6" fill="none"/></svg></span><span>CHAT FRIENDLY</span></div>
-          <div class="chk-btn" data-value="PHOTO FOCUSED"><span class="chk-box"><svg viewBox="0 0 10 10"><path d="M1 5 L4 8 L9 1" stroke="currentColor" stroke-width="1.6" fill="none"/></svg></span><span>PHOTO FOCUSED</span></div>
-          <div class="chk-btn" data-value="LOW FREQUENCY"><span class="chk-box"><svg viewBox="0 0 10 10"><path d="M1 5 L4 8 L9 1" stroke="currentColor" stroke-width="1.6" fill="none"/></svg></span><span>LOW FREQUENCY</span></div>
-          <div class="chk-btn" data-value="PLANNED PLAY"><span class="chk-box"><svg viewBox="0 0 10 10"><path d="M1 5 L4 8 L9 1" stroke="currentColor" stroke-width="1.6" fill="none"/></svg></span><span>PLANNED PLAY</span></div>
+          <div class="chk-btn checked" data-value="CASUAL PACE"><span class="chk-box"><svg viewBox="0 0 10 10"><path d="M1 5 L4 8 L9 1" stroke="currentColor" stroke-width="1.6" fill="none"/></svg></span><span class="chk-label">CASUAL PACE</span></div>
+          <div class="chk-btn checked" data-value="SLOW CONNECTION"><span class="chk-box"><svg viewBox="0 0 10 10"><path d="M1 5 L4 8 L9 1" stroke="currentColor" stroke-width="1.6" fill="none"/></svg></span><span class="chk-label">SLOW CONNECTION</span></div>
+          <div class="chk-btn" data-value="CHAT FRIENDLY"><span class="chk-box"><svg viewBox="0 0 10 10"><path d="M1 5 L4 8 L9 1" stroke="currentColor" stroke-width="1.6" fill="none"/></svg></span><span class="chk-label">CHAT FRIENDLY</span></div>
+          <div class="chk-btn" data-value="PHOTO FOCUSED"><span class="chk-box"><svg viewBox="0 0 10 10"><path d="M1 5 L4 8 L9 1" stroke="currentColor" stroke-width="1.6" fill="none"/></svg></span><span class="chk-label">PHOTO FOCUSED</span></div>
+          <div class="chk-btn" data-value="LOW FREQUENCY"><span class="chk-box"><svg viewBox="0 0 10 10"><path d="M1 5 L4 8 L9 1" stroke="currentColor" stroke-width="1.6" fill="none"/></svg></span><span class="chk-label">LOW FREQUENCY</span></div>
+          <div class="chk-btn" data-value="PLANNED PLAY"><span class="chk-box"><svg viewBox="0 0 10 10"><path d="M1 5 L4 8 L9 1" stroke="currentColor" stroke-width="1.6" fill="none"/></svg></span><span class="chk-label">PLANNED PLAY</span></div>
         </div>
       </div>
 
       <!-- background pattern -->
       <div class="mb-5">
-        <label class="cp-label">BACKGROUND PATTERN</label>
+        <label class="cp-label" data-i18n="lblBgPattern">BACKGROUND PATTERN</label>
         <div class="grid grid-cols-3 gap-2" id="bgGroup">
           <div class="bg-swatch active" data-theme="theme-tactical">
             <div class="bg-preview" style="background-color:#050b16; background-image:radial-gradient(ellipse at 50% 20%, rgba(75,155,255,.7), rgba(9,20,42,0) 65%), radial-gradient(circle at center, rgba(150,196,255,.55) .5px, transparent 1px); background-size:100%, 4px 4px;"></div>
@@ -404,31 +505,31 @@
 
       <!-- behavior -->
       <div class="mb-4">
-        <label class="cp-label">BEHAVIOR PATTERN</label>
+        <label class="cp-label" data-i18n="lblBehavior">BEHAVIOR PATTERN</label>
         <textarea id="behaviorInput" class="cp-textarea" rows="3" maxlength="150">BRIGHT AND UNRESERVED ON FIRST CONTACT. RESPONSIVE TO CASUAL PLAY, BOTH BATTLE AND NON-BATTLE.</textarea>
       </div>
 
       <!-- remarks -->
       <div class="mb-5">
-        <label class="cp-label">REMARKS</label>
+        <label class="cp-label" data-i18n="lblRemarks">REMARKS</label>
         <textarea id="remarksInput" class="cp-textarea" rows="2" maxlength="150">HIGHLY RESPONSIVE TO SCREENSHOTS AND GLAMOUR TALK.</textarea>
       </div>
 
       <!-- date / file no -->
       <div class="grid grid-cols-2 gap-3 items-end mb-5">
         <div>
-          <label class="cp-label">DATE LOGGED</label>
+          <label class="cp-label" data-i18n="lblDateLogged">DATE LOGGED</label>
           <input id="dateInput" type="date" class="cp-input">
         </div>
         <div>
-          <label class="cp-label">FILE NO. (001-999)</label>
+          <label class="cp-label" data-i18n="lblFileNo">FILE NO. (001-999)</label>
           <input id="fileNoInput" type="number" min="1" max="999" class="cp-input" value="1">
         </div>
       </div>
 
       <!-- output format -->
       <div>
-        <label class="cp-label">OUTPUT FORMAT</label>
+        <label class="cp-label" data-i18n="lblOutputFormat">OUTPUT FORMAT</label>
         <div class="grid grid-cols-3 gap-2" id="formatGroup">
           <div class="chk-btn checked" data-format="png"><span class="chk-box"><svg viewBox="0 0 10 10"><path d="M1 5 L4 8 L9 1" stroke="currentColor" stroke-width="1.6" fill="none"/></svg></span><span>PNG</span></div>
           <div class="chk-btn" data-format="jpg"><span class="chk-box"><svg viewBox="0 0 10 10"><path d="M1 5 L4 8 L9 1" stroke="currentColor" stroke-width="1.6" fill="none"/></svg></span><span>JPG</span></div>
@@ -460,33 +561,36 @@
             <div class="watermark" id="watermarkText">CONFIDENTIAL</div>
 
             <!-- hero screenshot : the undisputed star, shown clean — only the watermark crosses over it -->
-            <div class="cf-image-wrap" style="flex:0 0 auto; aspect-ratio:4/5; align-self:stretch;">
-              <img id="outImage" src="" alt="" class="w-full h-full object-cover hidden">
-              <div id="outImagePlaceholder" class="absolute inset-0 flex items-center justify-center">
-                <span class="cf-soft text-xs tracking-wide2">NO IMAGE UPLOADED</span>
+            <div class="cf-image-wrap" id="cfImageWrap" style="flex:0 0 auto; aspect-ratio:4/5; align-self:stretch;">
+              <div class="cf-image-clip">
+                <img id="outImage" src="" alt="" class="hidden">
+                <div id="outImagePlaceholder" class="absolute inset-0 flex items-center justify-center">
+                  <span class="cf-soft text-xs tracking-wide2">NO IMAGE UPLOADED</span>
+                </div>
               </div>
             </div>
 
             <!-- info column : name / race / dc-world / role-job / activity / style, spaced to breathe -->
             <div class="flex-1 min-w-0 flex flex-col gap-3.5 py-1">
               <div class="flex-none">
-                <div class="cp-label cf-soft !mb-0.5 !text-[9px]">NAME</div>
+                <div class="cp-label cf-soft !mb-0.5 !text-[9px]" data-i18n="cardLblName">NAME</div>
                 <div id="outName" class="font-semibold tracking-wide text-sm md:text-base truncate">KOMAKO SERIES</div>
               </div>
 
-              <div class="flex-none grid grid-cols-2 gap-x-3 gap-y-2 text-[10px] md:text-[11px]">
-                <div><div class="cp-label cf-soft !mb-0.5 !text-[9px]">RACE</div><div id="outRace" class="font-semibold tracking-wide">A</div></div>
-                <div><div class="cp-label cf-soft !mb-0.5 !text-[9px]">DC / WORLD</div><div id="outDcWorld" class="font-semibold tracking-wide truncate">DC-1 / WORLD-1</div></div>
-                <div class="col-span-2"><div class="cp-label cf-soft !mb-0.5 !text-[9px]">ROLE / JOB</div><div id="outRoleJob" class="font-semibold tracking-wide truncate">ROLE-1 / JOB-1</div></div>
+              <div class="flex-none flex flex-col gap-2 text-[10px] md:text-[11px]">
+                <div><div class="cp-label cf-soft !mb-0.5 !text-[9px]" data-i18n="cardLblRace">RACE</div><div id="outRace" class="font-semibold tracking-wide truncate">A</div></div>
+                <div><div class="cp-label cf-soft !mb-0.5 !text-[9px]" data-i18n="cardLblDc">DC</div><div id="outDc" class="font-semibold tracking-wide truncate">DC-1</div></div>
+                <div><div class="cp-label cf-soft !mb-0.5 !text-[9px]" data-i18n="cardLblWorld">WORLD</div><div id="outWorld" class="font-semibold tracking-wide truncate">WORLD-1</div></div>
+                <div><div class="cp-label cf-soft !mb-0.5 !text-[9px]" data-i18n="cardLblRoleJob">ROLE / JOB</div><div id="outRoleJob" class="font-semibold tracking-wide truncate">ROLE-1 / JOB-1</div></div>
               </div>
 
               <div class="flex-none cf-line border-t pt-2 grid grid-cols-2 gap-x-3 text-[10px] md:text-[11px]">
                 <div>
-                  <div class="cp-label cf-soft !mb-1 !text-[9px]">ACTIVITY</div>
+                  <div class="cp-label cf-soft !mb-1 !text-[9px]" data-i18n="cardLblActivity">ACTIVITY</div>
                   <ul id="outActivity" class="space-y-1"></ul>
                 </div>
                 <div>
-                  <div class="cp-label cf-soft !mb-1 !text-[9px]">STYLE</div>
+                  <div class="cp-label cf-soft !mb-1 !text-[9px]" data-i18n="cardLblStyle">STYLE</div>
                   <ul id="outStyle" class="space-y-1"></ul>
                 </div>
               </div>
@@ -497,11 +601,11 @@
           <div class="min-h-0 cf-line border-t-2 border-[var(--ink)]" style="flex:3 1 0%;">
             <div class="h-full flex flex-col justify-center gap-2 text-[10px] md:text-[11px] leading-snug pt-2" style="padding-right:28%;">
               <div>
-                <div class="cp-label cf-soft !mb-1 !text-[9px]">BEHAVIOR PATTERN</div>
+                <div class="cp-label cf-soft !mb-1 !text-[9px]" data-i18n="cardLblBehavior">BEHAVIOR PATTERN</div>
                 <p id="outBehavior" class="field-fixed-4">BRIGHT AND UNRESERVED ON FIRST CONTACT.</p>
               </div>
               <div>
-                <div class="cp-label cf-soft !mb-1 !text-[9px]">REMARKS</div>
+                <div class="cp-label cf-soft !mb-1 !text-[9px]" data-i18n="cardLblRemarks">REMARKS</div>
                 <p id="outRemarks" class="field-fixed-4">HIGHLY RESPONSIVE TO SCREENSHOTS.</p>
               </div>
             </div>
@@ -533,9 +637,124 @@
   </div>
 </div>
 
+<!-- Image resize/selection UI overlay — deliberately OUTSIDE #caseFile so the card's
+     overflow:hidden (needed to keep the exported card a clean 3:4 crop) can never clip
+     these controls, no matter how far the photo is scaled or dragged. Positioned via JS
+     using getBoundingClientRect(), so it always tracks the frame exactly. Never captured
+     in the downloaded image — hidden right before html2canvas runs. -->
+<div id="imgHandleLayer">
+  <div class="img-selection-box" id="imgSelectionBox"></div>
+  <div class="img-handle" data-handle="nw"></div>
+  <div class="img-handle" data-handle="ne"></div>
+  <div class="img-handle" data-handle="sw"></div>
+  <div class="img-handle" data-handle="se"></div>
+</div>
+
 <script>
 (function(){
   const $ = (id) => document.getElementById(id);
+
+  let currentLang = 'en';
+  let currentTheme = 'theme-tactical';
+
+  const RACE_LABELS = {
+    en: {
+      'hyur-midlander':'Hyur / Midlander', 'hyur-highlander':'Hyur / Highlander',
+      'elezen-wildwood':'Elezen / Wildwood', 'elezen-duskwight':'Elezen / Duskwight',
+      'lalafell-plainsfolk':'Lalafell / Plainsfolk', 'lalafell-dunesfolk':'Lalafell / Dunesfolk',
+      'miqote-seeker':"Miqo'te / Seeker", 'miqote-keeper':"Miqo'te / Keeper",
+      'roegadyn-seawolf':'Roegadyn / Sea Wolf', 'roegadyn-hellsguard':'Roegadyn / Hellsguard',
+      'aura-raen':'Au Ra / Raen', 'aura-xaela':'Au Ra / Xaela',
+      'hrothgar-helion':'Hrothgar / Helion', 'hrothgar-lost':'Hrothgar / Lost',
+      'viera-rava':'Viera / Rava', 'viera-veena':'Viera / Veena'
+    },
+    ja: {
+      'hyur-midlander':'ヒューラン / ミッドランダー', 'hyur-highlander':'ヒューラン / ハイランダー',
+      'elezen-wildwood':'エレゼン / フォレスター', 'elezen-duskwight':'エレゼン / シェーダー',
+      'lalafell-plainsfolk':'ララフェル / プレーンフォーク', 'lalafell-dunesfolk':'ララフェル / デューンフォーク',
+      'miqote-seeker':'ミコッテ / サンシーカー', 'miqote-keeper':'ミコッテ / ムーンキーパー',
+      'roegadyn-seawolf':'ルガディン / ゼーヴォルフ', 'roegadyn-hellsguard':'ルガディン / ローエンガルデ',
+      'aura-raen':'アウラ / レン', 'aura-xaela':'アウラ / ゼラ',
+      'hrothgar-helion':'ロスガル / ヘリオン', 'hrothgar-lost':'ロスガル / ロスト',
+      'viera-rava':'ヴィエラ / ラヴァ', 'viera-veena':'ヴィエラ / ヴィナ'
+    }
+  };
+  // DC -> WORLD cascade (Japan data centers). DC and WORLD names are identical in both languages.
+  const DC_WORLDS = {
+    'Elemental': ['Aegis','Atomos','Carbuncle','Garuda','Gungnir','Kujata','Tonberry','Typhon'],
+    'Gaia':      ['Alexander','Bahamut','Durandal','Fenrir','Ifrit','Ridill','Tiamat','Ultima'],
+    'Mana':      ['Anima','Asura','Chocobo','Hades','Ixion','Masamune','Pandaemonium','Titan'],
+    'Meteor':    ['Belias','Mandragora','Ramuh','Shinryu','Unicorn','Valefor','Yojimbo','Zeromus']
+  };
+  const ROLE_LABELS = {
+    en: { tank:'Tank', healer:'Healer', dps:'DPS', limited:'Limited Job' },
+    ja: { tank:'タンク', healer:'ヒーラー', dps:'DPS', limited:'リミテッドジョブ' }
+  };
+  // ROLE -> JOB cascade
+  const ROLE_JOBS = {
+    tank:    ['paladin','warrior','darkknight','gunbreaker'],
+    healer:  ['whitemage','scholar','astrologian','sage'],
+    dps:     ['monk','dragoon','ninja','samurai','reaper','viper','bard','machinist','dancer','blackmage','summoner','redmage','pictomancer'],
+    limited: ['bluemage']
+  };
+  const JOB_LABELS = {
+    en: {
+      paladin:'Paladin', warrior:'Warrior', darkknight:'Dark Knight', gunbreaker:'Gunbreaker',
+      whitemage:'White Mage', scholar:'Scholar', astrologian:'Astrologian', sage:'Sage',
+      monk:'Monk', dragoon:'Dragoon', ninja:'Ninja', samurai:'Samurai', reaper:'Reaper', viper:'Viper',
+      bard:'Bard', machinist:'Machinist', dancer:'Dancer', blackmage:'Black Mage', summoner:'Summoner',
+      redmage:'Red Mage', pictomancer:'Pictomancer', bluemage:'Blue Mage'
+    },
+    ja: {
+      paladin:'ナイト', warrior:'戦士', darkknight:'暗黒騎士', gunbreaker:'ガンブレイカー',
+      whitemage:'白魔道士', scholar:'学者', astrologian:'占星術師', sage:'賢者',
+      monk:'モンク', dragoon:'竜騎士', ninja:'忍者', samurai:'侍', reaper:'リーパー', viper:'ヴァイパー',
+      bard:'吟遊詩人', machinist:'機工士', dancer:'踊り子', blackmage:'黒魔道士', summoner:'召喚士',
+      redmage:'赤魔道士', pictomancer:'ピクトマンサー', bluemage:'青魔道士'
+    }
+  };
+  // card title: kept distinct from the header's small "FILE NO." line, which always stays English
+  const TITLE_EN = { 'theme-tactical':'CASE FILE', 'theme-classified':'CASE FILE', 'theme-daily':'GUEST CARD' };
+  const TITLE_JA = { 'theme-tactical':'監視対象報告書', 'theme-classified':'監視対象報告書', 'theme-daily':'GUEST CARD' };
+
+  const I18N = {
+    en: {
+      cpTitle:'CONTROL PANEL', cpSubtitle:'COMPILE SUBJECT DOSSIER', eyebrow:'CLASSIFIED RECORDS DIVISION',
+      lblScreenshot:'SUBJECT SCREENSHOT', btnUpload:'UPLOAD IMAGE', lblName:'CHARACTER NAME', lblRace:'RACE',
+      lblDc:'DC', lblWorld:'WORLD', lblRole:'ROLE', lblJob:'JOB', lblActivity:'ACTIVITY', lblStyle:'STYLE',
+      lblBgPattern:'BACKGROUND PATTERN', lblBehavior:'BEHAVIOR PATTERN', lblRemarks:'REMARKS',
+      lblDateLogged:'DATE LOGGED', lblFileNo:'FILE NO. (001-999)', lblOutputFormat:'OUTPUT FORMAT',
+      cardLblName:'NAME', cardLblRace:'RACE', cardLblDc:'DC', cardLblWorld:'WORLD', cardLblRoleJob:'ROLE / JOB',
+      cardLblActivity:'ACTIVITY', cardLblStyle:'STYLE', cardLblBehavior:'BEHAVIOR PATTERN', cardLblRemarks:'REMARKS'
+    },
+    ja: {
+      cpTitle:'コントロールパネル', cpSubtitle:'被写体データの入力', eyebrow:'機密記録局',
+      lblScreenshot:'スクリーンショット', btnUpload:'画像をアップロード', lblName:'キャラクター名', lblRace:'種族',
+      lblDc:'DC', lblWorld:'ワールド', lblRole:'ロール', lblJob:'ジョブ', lblActivity:'活動内容', lblStyle:'距離感',
+      lblBgPattern:'背景パターン', lblBehavior:'性格・行動傾向', lblRemarks:'備考',
+      lblDateLogged:'記録日', lblFileNo:'管理番号（001〜999）', lblOutputFormat:'出力形式',
+      cardLblName:'名前', cardLblRace:'種族', cardLblDc:'DC', cardLblWorld:'ワールド', cardLblRoleJob:'ロール / ジョブ',
+      cardLblActivity:'活動内容', cardLblStyle:'距離感', cardLblBehavior:'性格・行動傾向', cardLblRemarks:'備考'
+    }
+  };
+
+  // ACTIVITY / STYLE checkbox options: English stays as the original single-line text;
+  // Japanese uses two stacked lines (the "/" in the spec marks the line break, never shown itself).
+  const ACTIVITY_LABELS = {
+    'SNS CONTACT':    { en:'SNS CONTACT',    ja:['SNS交流'] },
+    'IN-GAME PLAY':   { en:'IN-GAME PLAY',   ja:['ゲーム内','交流'] },
+    'PHOTO SESSION':  { en:'PHOTO SESSION',  ja:['SS撮影'] },
+    'PVP':            { en:'PVP',            ja:['PVP'] },
+    'RAID':           { en:'RAID',           ja:['高難易度'] }
+  };
+  const STYLE_LABELS = {
+    'CASUAL PACE':      { en:'CASUAL PACE',      ja:['気軽め'] },
+    'SLOW CONNECTION':  { en:'SLOW CONNECTION',  ja:['ゆっくり'] },
+    'CHAT FRIENDLY':    { en:'CHAT FRIENDLY',    ja:['雑談歓迎'] },
+    'PHOTO FOCUSED':    { en:'PHOTO FOCUSED',    ja:['SS歓迎'] },
+    'LOW FREQUENCY':    { en:'LOW FREQUENCY',    ja:['低頻度OK'] },
+    'PLANNED PLAY':     { en:'PLANNED PLAY',     ja:['予定を','合わせる'] }
+  };
 
   const checkIconSVG = '<svg class="check-icon" viewBox="0 0 10 10"><path d="M1 5 L4 8 L9 1" stroke="currentColor" stroke-width="1.6" fill="none"/></svg>';
 
@@ -573,15 +792,41 @@
   }
 
   function syncRace(){
-    $('outRace').textContent = $('raceSelect').value;
+    const val = $('raceSelect').value;
+    $('outRace').textContent = (RACE_LABELS[currentLang] && RACE_LABELS[currentLang][val]) || val;
   }
 
-  function syncDcWorld(){
-    $('outDcWorld').textContent = $('dcSelect').value + ' / ' + $('worldSelect').value;
+  function syncDc(){
+    $('outDc').textContent = $('dcSelect').value;
+  }
+
+  function syncWorld(){
+    $('outWorld').textContent = $('worldSelect').value;
+  }
+
+  function populateWorldOptions(dcValue, preserveWorld){
+    const worldSelect = $('worldSelect');
+    const worlds = DC_WORLDS[dcValue] || [];
+    const keep = preserveWorld && worlds.indexOf(preserveWorld) !== -1 ? preserveWorld : worlds[0];
+    worldSelect.innerHTML = worlds.map(w => '<option value="'+w+'">'+w+'</option>').join('');
+    worldSelect.value = keep;
   }
 
   function syncRoleJob(){
-    $('outRoleJob').textContent = $('roleSelect').value + ' / ' + $('jobSelect').value;
+    const roleVal = $('roleSelect').value;
+    const jobVal = $('jobSelect').value;
+    const roleLabel = (ROLE_LABELS[currentLang] && ROLE_LABELS[currentLang][roleVal]) || roleVal;
+    const jobLabel = (JOB_LABELS[currentLang] && JOB_LABELS[currentLang][jobVal]) || jobVal;
+    $('outRoleJob').textContent = roleLabel + ' / ' + jobLabel;
+  }
+
+  function populateJobOptions(roleValue, preserveJob){
+    const jobSelect = $('jobSelect');
+    const jobs = ROLE_JOBS[roleValue] || [];
+    const keep = preserveJob && jobs.indexOf(preserveJob) !== -1 ? preserveJob : jobs[0];
+    const labels = JOB_LABELS[currentLang] || JOB_LABELS.en;
+    jobSelect.innerHTML = jobs.map(code => '<option value="'+code+'">' + (labels[code] || code) + '</option>').join('');
+    jobSelect.value = keep;
   }
 
   function syncBehavior(){
@@ -592,6 +837,16 @@
     $('outRemarks').textContent = $('remarksInput').value.toUpperCase();
   }
 
+  function labelDictFor(groupId){
+    return groupId === 'activityGroup' ? ACTIVITY_LABELS : STYLE_LABELS;
+  }
+
+  function labelHtmlFor(groupId, value){
+    const entry = labelDictFor(groupId)[value];
+    if(!entry) return value;
+    return currentLang === 'ja' ? entry.ja.join('<br>') : entry.en;
+  }
+
   function renderCheckGroup(groupId, outId){
     const group = $(groupId);
     const out = $(outId);
@@ -600,9 +855,20 @@
       if(btn.classList.contains('checked')){
         const li = document.createElement('li');
         li.className = 'flex items-center gap-1.5';
-        li.innerHTML = checkIconSVG + '<span>' + btn.dataset.value + '</span>';
+        li.innerHTML = checkIconSVG + '<span class="leading-tight">' + labelHtmlFor(groupId, btn.dataset.value) + '</span>';
         out.appendChild(li);
       }
+    });
+  }
+
+  function updateCheckboxLabels(){
+    document.querySelectorAll('#activityGroup .chk-btn').forEach(btn => {
+      const span = btn.querySelector('.chk-label');
+      if(span) span.innerHTML = labelHtmlFor('activityGroup', btn.dataset.value);
+    });
+    document.querySelectorAll('#styleGroup .chk-btn').forEach(btn => {
+      const span = btn.querySelector('.chk-label');
+      if(span) span.innerHTML = labelHtmlFor('styleGroup', btn.dataset.value);
     });
   }
 
@@ -616,6 +882,62 @@
     });
   }
 
+  function updateBehaviorRemarksLabels(){
+    // Special case: in Japanese, DAILY CHRONICLE swaps these two labels for a more casual pair.
+    // TACTICAL / CLASSIFIED keep the standard Japanese labels; English always keeps the standard labels.
+    const isDailyJa = (currentLang === 'ja' && currentTheme === 'theme-daily');
+    const behaviorText = isDailyJa ? 'ひとこと紹介' : I18N[currentLang].lblBehavior;
+    const remarksText = isDailyJa ? '好きな話題' : I18N[currentLang].lblRemarks;
+    const cardBehaviorText = isDailyJa ? 'ひとこと紹介' : I18N[currentLang].cardLblBehavior;
+    const cardRemarksText = isDailyJa ? '好きな話題' : I18N[currentLang].cardLblRemarks;
+    document.querySelectorAll('[data-i18n="lblBehavior"]').forEach(el => { el.textContent = behaviorText; });
+    document.querySelectorAll('[data-i18n="lblRemarks"]').forEach(el => { el.textContent = remarksText; });
+    document.querySelectorAll('[data-i18n="cardLblBehavior"]').forEach(el => { el.textContent = cardBehaviorText; });
+    document.querySelectorAll('[data-i18n="cardLblRemarks"]').forEach(el => { el.textContent = cardRemarksText; });
+  }
+
+  function updateTitles(){
+    // the small "FILE NO." header line always stays English, tied only to theme
+    $('outTitleShort').textContent = TITLE_EN[currentTheme] || 'CASE FILE';
+    // the big card title translates with the chosen language
+    $('outTitle').textContent = (currentLang === 'ja' ? TITLE_JA[currentTheme] : TITLE_EN[currentTheme]) || 'CASE FILE';
+  }
+
+  function applyLanguage(lang){
+    currentLang = lang;
+    document.querySelectorAll('[data-i18n]').forEach(el => {
+      const key = el.dataset.i18n;
+      if(I18N[lang] && I18N[lang][key] !== undefined) el.textContent = I18N[lang][key];
+    });
+    document.querySelectorAll('#raceSelect option').forEach(opt => {
+      opt.textContent = RACE_LABELS[lang][opt.value] || opt.value;
+    });
+    document.querySelectorAll('#roleSelect option').forEach(opt => {
+      opt.textContent = ROLE_LABELS[lang][opt.value] || opt.value;
+    });
+    document.querySelectorAll('#jobSelect option').forEach(opt => {
+      opt.textContent = JOB_LABELS[lang][opt.value] || opt.value;
+    });
+    updateTitles();
+    updateBehaviorRemarksLabels();
+    updateCheckboxLabels();
+    renderCheckGroup('activityGroup','outActivity');
+    renderCheckGroup('styleGroup','outStyle');
+    syncRace();
+    syncRoleJob();
+  }
+
+  function setupLangGroup(){
+    const group = $('langGroup');
+    group.querySelectorAll('.chk-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        group.querySelectorAll('.chk-btn').forEach(b => b.classList.remove('checked'));
+        btn.classList.add('checked');
+        applyLanguage(btn.dataset.lang);
+      });
+    });
+  }
+
   function setupBgSwatches(){
     const swatches = document.querySelectorAll('.bg-swatch');
     const caseFile = $('caseFile');
@@ -624,15 +946,10 @@
       'theme-classified': 'CONFIDENTIAL',
       'theme-daily': 'FIELD RECORD'
     };
-    const titleText = {
-      'theme-tactical': 'CASE FILE',
-      'theme-classified': 'CASE FILE',
-      'theme-daily': 'TRAVEL LOG'
-    };
     const stampTopText = {
       'theme-tactical': '✦ CASE FILE ✦',
       'theme-classified': '✦ CASE FILE ✦',
-      'theme-daily': '✦ TRAVEL LOG ✦'
+      'theme-daily': '✦ GUEST CARD ✦'
     };
     swatches.forEach(sw => {
       sw.addEventListener('click', () => {
@@ -640,16 +957,167 @@
         sw.classList.add('active');
         caseFile.classList.remove('theme-tactical','theme-classified','theme-daily');
         caseFile.classList.add(sw.dataset.theme);
+        currentTheme = sw.dataset.theme;
+        // watermark + stamp text are part of the fixed "world" design and always stay English
         $('watermarkText').textContent = watermarkText[sw.dataset.theme] || 'CONFIDENTIAL';
-        const title = titleText[sw.dataset.theme] || 'CASE FILE';
-        $('outTitle').textContent = title;
-        $('outTitleShort').textContent = title;
         $('stampTopText').textContent = stampTopText[sw.dataset.theme] || '✦ CASE FILE ✦';
+        updateTitles();
+        updateBehaviorRemarksLabels();
       });
     });
   }
 
+  // ---- image transform: the frame is a fixed "peephole" mask; the photo moves and scales
+  // behind it. State is deliberately just x / y / scale — width and height are never stored
+  // or edited independently, so the aspect ratio can never drift out of sync. ----
+  let imgState = null;   // { xFrac, yFrac, scale } — xFrac/yFrac = top-left position as a
+                          // fraction of the frame; scale = multiplier on the base (natural-
+                          // ratio) size below
+  let baseWFrac = 0, baseHFrac = 0; // the photo's size at scale = 1, as a fraction of the
+                          // frame — fixed at upload time, always in the image's natural ratio
+  let imgSelected = false;
+
+  function selectImage(state){
+    imgSelected = state;
+    $('imgHandleLayer').classList.toggle('active', state);
+  }
+
+  // current displayed box, in the frame's own px, purely as a function of imgState + base size
+  function currentBoxPx(wrapW, wrapH){
+    const w = baseWFrac * imgState.scale * wrapW;
+    const h = baseHFrac * imgState.scale * wrapH;
+    return { x: imgState.xFrac * wrapW, y: imgState.yFrac * wrapH, w, h };
+  }
+
+  function applyImageTransform(){
+    if(!imgState) return;
+    const wrap = $('cfImageWrap');
+    const w = wrap.clientWidth, h = wrap.clientHeight;
+    const box = currentBoxPx(w, h);
+    const img = $('outImage');
+    img.style.left = box.x + 'px';
+    img.style.top = box.y + 'px';
+    img.style.width = box.w + 'px';
+    img.style.height = box.h + 'px';
+
+    // translate the frame-local box into viewport coordinates for the fixed overlay —
+    // this is what lets the handles stay visible/grabbable even past the card's own edges
+    const rect = wrap.getBoundingClientRect();
+    const screenX = rect.left + box.x, screenY = rect.top + box.y;
+    const selBox = $('imgSelectionBox');
+    selBox.style.left = screenX + 'px';
+    selBox.style.top = screenY + 'px';
+    selBox.style.width = box.w + 'px';
+    selBox.style.height = box.h + 'px';
+    const corners = { nw:[screenX,screenY], ne:[screenX+box.w,screenY], sw:[screenX,screenY+box.h], se:[screenX+box.w,screenY+box.h] };
+    Object.keys(corners).forEach(key => {
+      const handle = document.querySelector('.img-handle[data-handle="'+key+'"]');
+      if(handle){ handle.style.left = corners[key][0]+'px'; handle.style.top = corners[key][1]+'px'; }
+    });
+  }
+
+  function initImageState(){
+    const wrap = $('cfImageWrap');
+    const w = wrap.clientWidth, h = wrap.clientHeight;
+    const img = $('outImage');
+    const natW = img.naturalWidth || 1, natH = img.naturalHeight || 1;
+    // base size = a "cover"-style fit of the natural-ratio photo over the frame, at scale 1
+    const coverScale = Math.max(w / natW, h / natH);
+    const baseWPx = natW * coverScale, baseHPx = natH * coverScale;
+    baseWFrac = baseWPx / w;
+    baseHFrac = baseHPx / h;
+    // center it, scale 1 — the user can then freely drag/scale from there
+    imgState = { xFrac: (w - baseWPx) / 2 / w, yFrac: (h - baseHPx) / 2 / h, scale: 1 };
+    applyImageTransform();
+  }
+
+  function setupImageInteraction(){
+    const wrap = $('cfImageWrap');
+    const img = $('outImage');
+    const minScale = 0.15; // prevents scaling the photo down to nothing
+
+    img.addEventListener('mousedown', (e) => {
+      if(!imgState) return;
+      e.preventDefault();
+      selectImage(true);
+      const rect = wrap.getBoundingClientRect();
+      const w = rect.width, h = rect.height;
+      const startX = e.clientX, startY = e.clientY;
+      const startState = Object.assign({}, imgState);
+
+      function onMove(ev){
+        const dxFrac = (ev.clientX - startX) / w;
+        const dyFrac = (ev.clientY - startY) / h;
+        // pure translation: scale is untouched, so the ratio can't change here
+        imgState = Object.assign({}, startState, { xFrac: startState.xFrac + dxFrac, yFrac: startState.yFrac + dyFrac });
+        applyImageTransform();
+      }
+      function onUp(){
+        document.removeEventListener('mousemove', onMove);
+        document.removeEventListener('mouseup', onUp);
+      }
+      document.addEventListener('mousemove', onMove);
+      document.addEventListener('mouseup', onUp);
+    });
+
+    document.querySelectorAll('.img-handle').forEach(handle => {
+      handle.addEventListener('mousedown', (e) => {
+        if(!imgState) return;
+        e.preventDefault();
+        e.stopPropagation();
+        const type = handle.dataset.handle;
+        const rect = wrap.getBoundingClientRect();
+        const w = rect.width, h = rect.height;
+        const startBox = currentBoxPx(w, h);          // {x,y,w,h} at drag start
+        const baseWPx0 = baseWFrac * w;                // width at scale = 1, for this wrap size
+
+        function onMove(ev){
+          const mouseX = ev.clientX - rect.left;
+          // anchor = the corner diagonally opposite the dragged handle; it stays fixed
+          let anchorX, anchorY, newW;
+          if(type === 'se'){ anchorX = startBox.x; anchorY = startBox.y; newW = mouseX - anchorX; }
+          else if(type === 'nw'){ anchorX = startBox.x + startBox.w; anchorY = startBox.y + startBox.h; newW = anchorX - mouseX; }
+          else if(type === 'ne'){ anchorX = startBox.x; anchorY = startBox.y + startBox.h; newW = mouseX - anchorX; }
+          else { anchorX = startBox.x + startBox.w; anchorY = startBox.y; newW = anchorX - mouseX; } // sw
+
+          // the ONLY free variable is scale — height always follows from it via the fixed
+          // natural ratio baked into baseWFrac/baseHFrac, so the photo can never distort
+          let newScale = newW / baseWPx0;
+          newScale = Math.max(minScale, newScale);
+          const newW2 = baseWFrac * newScale * w;
+          const newH2 = baseHFrac * newScale * h;
+
+          let boxX, boxY;
+          if(type === 'se'){ boxX = anchorX; boxY = anchorY; }
+          else if(type === 'nw'){ boxX = anchorX - newW2; boxY = anchorY - newH2; }
+          else if(type === 'ne'){ boxX = anchorX; boxY = anchorY - newH2; }
+          else { boxX = anchorX - newW2; boxY = anchorY; } // sw
+
+          imgState = { xFrac: boxX/w, yFrac: boxY/h, scale: newScale };
+          applyImageTransform();
+        }
+        function onUp(){
+          document.removeEventListener('mousemove', onMove);
+          document.removeEventListener('mouseup', onUp);
+        }
+        document.addEventListener('mousemove', onMove);
+        document.addEventListener('mouseup', onUp);
+      });
+    });
+
+    // deselect (hide handles) when clicking anywhere outside the image frame
+    document.addEventListener('mousedown', (e) => {
+      if(!wrap.contains(e.target)) selectImage(false);
+    });
+
+    // keep the photo + overlay aligned with the frame if the card's rendered size changes
+    // (responsive width) or the page scrolls (the overlay is viewport-fixed)
+    window.addEventListener('resize', () => { if(imgState) applyImageTransform(); });
+    window.addEventListener('scroll', () => { if(imgState) applyImageTransform(); }, true);
+  }
+
   function setupImageUpload(){
+    $('outImage').addEventListener('load', initImageState);
     $('imageInput').addEventListener('change', (e) => {
       const file = e.target.files[0];
       if(!file) return;
@@ -683,7 +1151,10 @@
   function setupDownload(){
     $('downloadBtn').addEventListener('click', () => {
       const target = $('caseFile');
+      const wasSelected = imgSelected;
+      selectImage(false);
       html2canvas(target, { backgroundColor: '#ffffff', scale: 2, useCORS: true }).then(canvas => {
+        if(wasSelected) selectImage(true);
         const format = getSelectedFormat();
         const fileNo = pad3($('fileNoInput').value);
         let mime = 'image/png';
@@ -712,9 +1183,18 @@
     $('dateInput').addEventListener('input', syncDate);
     $('nameInput').addEventListener('input', syncName);
     $('raceSelect').addEventListener('change', syncRace);
-    $('dcSelect').addEventListener('change', syncDcWorld);
-    $('worldSelect').addEventListener('change', syncDcWorld);
-    $('roleSelect').addEventListener('change', syncRoleJob);
+    $('dcSelect').addEventListener('change', () => {
+      const currentWorld = $('worldSelect').value;
+      populateWorldOptions($('dcSelect').value, currentWorld);
+      syncDc();
+      syncWorld();
+    });
+    $('worldSelect').addEventListener('change', syncWorld);
+    $('roleSelect').addEventListener('change', () => {
+      const currentJob = $('jobSelect').value;
+      populateJobOptions($('roleSelect').value, currentJob);
+      syncRoleJob();
+    });
     $('jobSelect').addEventListener('change', syncRoleJob);
     $('behaviorInput').addEventListener('input', syncBehavior);
     $('remarksInput').addEventListener('input', syncRemarks);
@@ -726,7 +1206,9 @@
     setupCheckGroup('styleGroup');
     setupBgSwatches();
     setupImageUpload();
+    setupImageInteraction();
     setupFormatGroup();
+    setupLangGroup();
     setupDownload();
     bindLiveInputs();
 
@@ -734,12 +1216,16 @@
     syncDate();
     syncName();
     syncRace();
-    syncDcWorld();
+    populateWorldOptions($('dcSelect').value, $('worldSelect').value);
+    syncDc();
+    syncWorld();
+    populateJobOptions($('roleSelect').value, $('jobSelect').value);
     syncRoleJob();
     syncBehavior();
     syncRemarks();
     renderCheckGroup('activityGroup','outActivity');
     renderCheckGroup('styleGroup','outStyle');
+    applyLanguage('en');
   }
 
   document.addEventListener('DOMContentLoaded', init);
