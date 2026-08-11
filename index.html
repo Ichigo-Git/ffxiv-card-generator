@@ -322,13 +322,14 @@
   .check-icon{ width:11px;height:11px; flex:none; }
   .line-clamp-3{ display:-webkit-box; -webkit-line-clamp:3; -webkit-box-orient:vertical; overflow:hidden; }
   .line-clamp-2{ display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; }
-  .field-fixed-4{
+  .field-fixed-6{
     display:-webkit-box;
-    -webkit-line-clamp:4;
+    -webkit-line-clamp:6;
     -webkit-box-orient:vertical;
     overflow:hidden;
-    line-height:1.25;
-    height:5em;
+    line-height:1.2;
+    height:7.2em;
+    white-space:pre-line; /* preserves line breaks typed in the textarea, still wraps long lines */
   }
 </style>
 </head>
@@ -357,7 +358,7 @@
       </div>
     </div>
     <button id="downloadBtn" class="font-display text-xs tracking-wide2 border-2 border-[var(--ink)] px-4 py-2 bg-[var(--ink)] text-[#f0eee3] hover:bg-transparent hover:text-[var(--ink)] transition-colors">
-      ⬇ DOWNLOAD CASE FILE
+      ⬇ FILE DOWNLOAD
     </button>
   </div>
 
@@ -385,13 +386,14 @@
       <!-- name -->
       <div class="mb-4">
         <label class="cp-label" data-i18n="lblName">CHARACTER NAME</label>
-        <input id="nameInput" type="text" class="cp-input" value="KOMAKO SERIES">
+        <input id="nameInput" type="text" class="cp-input" value="">
       </div>
 
       <!-- race -->
       <div class="mb-4">
         <label class="cp-label" data-i18n="lblRace">RACE</label>
         <select id="raceSelect" class="cp-select">
+          <option value="" class="select-placeholder" selected>SELECT</option>
           <option value="hyur-midlander">Hyur / Midlander</option>
           <option value="hyur-highlander">Hyur / Highlander</option>
           <option value="elezen-wildwood">Elezen / Wildwood</option>
@@ -416,6 +418,7 @@
         <div>
           <label class="cp-label" data-i18n="lblDc">DC</label>
           <select id="dcSelect" class="cp-select">
+            <option value="" class="select-placeholder" selected>SELECT</option>
             <option>Elemental</option>
             <option>Gaia</option>
             <option>Mana</option>
@@ -425,14 +428,7 @@
         <div>
           <label class="cp-label" data-i18n="lblWorld">WORLD</label>
           <select id="worldSelect" class="cp-select">
-            <option>Aegis</option>
-            <option>Atomos</option>
-            <option>Carbuncle</option>
-            <option>Garuda</option>
-            <option>Gungnir</option>
-            <option>Kujata</option>
-            <option>Tonberry</option>
-            <option>Typhon</option>
+            <option value="" class="select-placeholder" selected>SELECT</option>
           </select>
         </div>
       </div>
@@ -442,6 +438,7 @@
         <div>
           <label class="cp-label" data-i18n="lblRole">ROLE</label>
           <select id="roleSelect" class="cp-select">
+            <option value="" class="select-placeholder" selected>SELECT</option>
             <option value="tank">Tank</option>
             <option value="healer">Healer</option>
             <option value="dps">DPS</option>
@@ -451,10 +448,7 @@
         <div>
           <label class="cp-label" data-i18n="lblJob">JOB</label>
           <select id="jobSelect" class="cp-select">
-            <option value="paladin">Paladin</option>
-            <option value="warrior">Warrior</option>
-            <option value="darkknight">Dark Knight</option>
-            <option value="gunbreaker">Gunbreaker</option>
+            <option value="" class="select-placeholder" selected>SELECT</option>
           </select>
         </div>
       </div>
@@ -465,8 +459,8 @@
         <div class="grid grid-cols-2 gap-2" id="activityGroup">
           <div class="chk-btn checked" data-value="SNS CONTACT"><span class="chk-box"><svg viewBox="0 0 10 10"><path d="M1 5 L4 8 L9 1" stroke="currentColor" stroke-width="1.6" fill="none"/></svg></span><span class="chk-label">SNS CONTACT</span></div>
           <div class="chk-btn checked" data-value="IN-GAME PLAY"><span class="chk-box"><svg viewBox="0 0 10 10"><path d="M1 5 L4 8 L9 1" stroke="currentColor" stroke-width="1.6" fill="none"/></svg></span><span class="chk-label">IN-GAME PLAY</span></div>
-          <div class="chk-btn checked" data-value="PHOTO SESSION"><span class="chk-box"><svg viewBox="0 0 10 10"><path d="M1 5 L4 8 L9 1" stroke="currentColor" stroke-width="1.6" fill="none"/></svg></span><span class="chk-label">PHOTO SESSION</span></div>
-          <div class="chk-btn checked" data-value="PVP"><span class="chk-box"><svg viewBox="0 0 10 10"><path d="M1 5 L4 8 L9 1" stroke="currentColor" stroke-width="1.6" fill="none"/></svg></span><span class="chk-label">PVP</span></div>
+          <div class="chk-btn" data-value="PHOTO SESSION"><span class="chk-box"><svg viewBox="0 0 10 10"><path d="M1 5 L4 8 L9 1" stroke="currentColor" stroke-width="1.6" fill="none"/></svg></span><span class="chk-label">PHOTO SESSION</span></div>
+          <div class="chk-btn" data-value="PVP"><span class="chk-box"><svg viewBox="0 0 10 10"><path d="M1 5 L4 8 L9 1" stroke="currentColor" stroke-width="1.6" fill="none"/></svg></span><span class="chk-label">PVP</span></div>
           <div class="chk-btn" data-value="RAID"><span class="chk-box"><svg viewBox="0 0 10 10"><path d="M1 5 L4 8 L9 1" stroke="currentColor" stroke-width="1.6" fill="none"/></svg></span><span class="chk-label">RAID</span></div>
         </div>
       </div>
@@ -506,13 +500,13 @@
       <!-- behavior -->
       <div class="mb-4">
         <label class="cp-label" data-i18n="lblBehavior">BEHAVIOR PATTERN</label>
-        <textarea id="behaviorInput" class="cp-textarea" rows="3" maxlength="150">BRIGHT AND UNRESERVED ON FIRST CONTACT. RESPONSIVE TO CASUAL PLAY, BOTH BATTLE AND NON-BATTLE.</textarea>
+        <textarea id="behaviorInput" class="cp-textarea" rows="4" maxlength="200" placeholder="Example: Enjoys casual interaction, screenshots, and chat.&#10;Happy to build connections at a relaxed pace."></textarea>
       </div>
 
       <!-- remarks -->
       <div class="mb-5">
         <label class="cp-label" data-i18n="lblRemarks">REMARKS</label>
-        <textarea id="remarksInput" class="cp-textarea" rows="2" maxlength="150">HIGHLY RESPONSIVE TO SCREENSHOTS AND GLAMOUR TALK.</textarea>
+        <textarea id="remarksInput" class="cp-textarea" rows="3" maxlength="200" placeholder="Example: Often responds to glamour, studio, and screenshot-editing topics."></textarea>
       </div>
 
       <!-- date / file no -->
@@ -528,12 +522,22 @@
       </div>
 
       <!-- output format -->
-      <div>
+      <div class="mb-5">
         <label class="cp-label" data-i18n="lblOutputFormat">OUTPUT FORMAT</label>
         <div class="grid grid-cols-3 gap-2" id="formatGroup">
           <div class="chk-btn checked" data-format="png"><span class="chk-box"><svg viewBox="0 0 10 10"><path d="M1 5 L4 8 L9 1" stroke="currentColor" stroke-width="1.6" fill="none"/></svg></span><span>PNG</span></div>
           <div class="chk-btn" data-format="jpg"><span class="chk-box"><svg viewBox="0 0 10 10"><path d="M1 5 L4 8 L9 1" stroke="currentColor" stroke-width="1.6" fill="none"/></svg></span><span>JPG</span></div>
           <div class="chk-btn" data-format="webp"><span class="chk-box"><svg viewBox="0 0 10 10"><path d="M1 5 L4 8 L9 1" stroke="currentColor" stroke-width="1.6" fill="none"/></svg></span><span>WEBP</span></div>
+        </div>
+      </div>
+
+      <!-- output size : preview stays as-is, this only affects the exported PNG/JPG/WEBP resolution -->
+      <div>
+        <label class="cp-label" data-i18n="lblOutputSize">OUTPUT SIZE</label>
+        <div class="grid grid-cols-1 gap-2" id="sizeGroup">
+          <div class="chk-btn" data-width="1620" data-height="2160"><span class="chk-box"><svg viewBox="0 0 10 10"><path d="M1 5 L4 8 L9 1" stroke="currentColor" stroke-width="1.6" fill="none"/></svg></span><span>1620 &times; 2160 <span data-i18n="sizeLight">(Light)</span></span></div>
+          <div class="chk-btn checked" data-width="2160" data-height="2880"><span class="chk-box"><svg viewBox="0 0 10 10"><path d="M1 5 L4 8 L9 1" stroke="currentColor" stroke-width="1.6" fill="none"/></svg></span><span>2160 &times; 2880 <span data-i18n="sizeStandard">(Standard)</span></span></div>
+          <div class="chk-btn" data-width="2700" data-height="3600"><span class="chk-box"><svg viewBox="0 0 10 10"><path d="M1 5 L4 8 L9 1" stroke="currentColor" stroke-width="1.6" fill="none"/></svg></span><span>2700 &times; 3600 <span data-i18n="sizeHigh">(High-Res)</span></span></div>
         </div>
       </div>
     </div>
@@ -599,20 +603,20 @@
 
           <!-- FOOTER AREA (~30%): full-width behavior / remarks, stamp anchored bottom-right like a wax seal -->
           <div class="min-h-0 cf-line border-t-2 border-[var(--ink)]" style="flex:3 1 0%;">
-            <div class="h-full flex flex-col justify-center gap-2 text-[10px] md:text-[11px] leading-snug pt-2" style="padding-right:28%;">
+            <div class="h-full flex flex-col justify-center gap-1.5 text-[10px] md:text-[11px] leading-snug pt-1.5" style="padding-right:28%;">
               <div>
-                <div class="cp-label cf-soft !mb-1 !text-[9px]" data-i18n="cardLblBehavior">BEHAVIOR PATTERN</div>
-                <p id="outBehavior" class="field-fixed-4">BRIGHT AND UNRESERVED ON FIRST CONTACT.</p>
+                <div class="cp-label cf-soft !mb-0.5 !text-[9px]" data-i18n="cardLblBehavior">BEHAVIOR PATTERN</div>
+                <p id="outBehavior" class="field-fixed-6">BRIGHT AND UNRESERVED ON FIRST CONTACT.</p>
               </div>
               <div>
-                <div class="cp-label cf-soft !mb-1 !text-[9px]" data-i18n="cardLblRemarks">REMARKS</div>
-                <p id="outRemarks" class="field-fixed-4">HIGHLY RESPONSIVE TO SCREENSHOTS.</p>
+                <div class="cp-label cf-soft !mb-0.5 !text-[9px]" data-i18n="cardLblRemarks">REMARKS</div>
+                <p id="outRemarks" class="field-fixed-6">HIGHLY RESPONSIVE TO SCREENSHOTS.</p>
               </div>
             </div>
           </div>
 
           <!-- copyright: anchored to the card's bottom-left corner, independent of textarea content length -->
-          <div class="text-[8px] tracking-wide2 cf-soft opacity-60" style="position:absolute; left:6%; bottom:2.2%;">©SQUARE ENIX</div>
+          <div class="text-[8px] tracking-wide2 cf-soft opacity-60" style="position:absolute; left:6%; bottom:1.0%;">©SQUARE ENIX</div>
 
           <!-- stamp: absolutely anchored to the card's bottom-right corner so its position never
                shifts as surrounding text grows or shrinks. Theme color / blend-mode rules on
@@ -725,18 +729,38 @@
       lblBgPattern:'BACKGROUND PATTERN', lblBehavior:'BEHAVIOR PATTERN', lblRemarks:'REMARKS',
       lblDateLogged:'DATE LOGGED', lblFileNo:'FILE NO. (001-999)', lblOutputFormat:'OUTPUT FORMAT',
       cardLblName:'NAME', cardLblRace:'RACE', cardLblDc:'DC', cardLblWorld:'WORLD', cardLblRoleJob:'ROLE / JOB',
-      cardLblActivity:'ACTIVITY', cardLblStyle:'STYLE', cardLblBehavior:'BEHAVIOR PATTERN', cardLblRemarks:'REMARKS'
+      cardLblActivity:'ACTIVITY', cardLblStyle:'STYLE', cardLblBehavior:'BEHAVIOR PATTERN', cardLblRemarks:'REMARKS',
+      selectPlaceholder:'SELECT', lblOutputSize:'OUTPUT SIZE', sizeLight:'(Light)', sizeStandard:'(Standard)', sizeHigh:'(High-Res)'
     },
     ja: {
-      cpTitle:'コントロールパネル', cpSubtitle:'被写体データの入力', eyebrow:'機密記録局',
+      cpTitle:'コントロールパネル', cpSubtitle:'記録データの入力', eyebrow:'機密資料室',
       lblScreenshot:'スクリーンショット', btnUpload:'画像をアップロード', lblName:'キャラクター名', lblRace:'種族',
       lblDc:'DC', lblWorld:'ワールド', lblRole:'ロール', lblJob:'ジョブ', lblActivity:'活動内容', lblStyle:'距離感',
       lblBgPattern:'背景パターン', lblBehavior:'性格・行動傾向', lblRemarks:'備考',
       lblDateLogged:'記録日', lblFileNo:'管理番号（001〜999）', lblOutputFormat:'出力形式',
       cardLblName:'名前', cardLblRace:'種族', cardLblDc:'DC', cardLblWorld:'ワールド', cardLblRoleJob:'ロール / ジョブ',
-      cardLblActivity:'活動内容', cardLblStyle:'距離感', cardLblBehavior:'性格・行動傾向', cardLblRemarks:'備考'
+      cardLblActivity:'活動内容', cardLblStyle:'距離感', cardLblBehavior:'性格・行動傾向', cardLblRemarks:'備考',
+      selectPlaceholder:'選択してください', lblOutputSize:'出力サイズ', sizeLight:'（軽量）', sizeStandard:'（標準）', sizeHigh:'（高精細）'
     }
   };
+
+  // Placeholder text for the free-text fields; shown only via the placeholder attribute,
+  // never written into the actual value, so it never appears on the rendered card.
+  const FIELD_PLACEHOLDERS = {
+    en: {
+      behavior: "Example: Enjoys casual interaction, screenshots, and chat.\nHappy to build connections at a relaxed pace.",
+      remarks: "Example: Often responds to glamour, studio, and screenshot-editing topics."
+    },
+    ja: {
+      behavior: "例：気軽な交流、SS撮影、雑談が好きです。\nゆっくり仲良くなれたら嬉しいです。",
+      remarks: "例：ミラプリ、スタジオ、SS加工の話題に反応しやすいです。"
+    }
+  };
+
+  function updateFieldPlaceholders(lang){
+    $('behaviorInput').placeholder = FIELD_PLACEHOLDERS[lang].behavior;
+    $('remarksInput').placeholder = FIELD_PLACEHOLDERS[lang].remarks;
+  }
 
   // ACTIVITY / STYLE checkbox options: English stays as the original single-line text;
   // Japanese uses two stacked lines (the "/" in the spec marks the line break, never shown itself).
@@ -787,54 +811,68 @@
     $('outStampDate').textContent = formatted;
   }
 
+  const EMPTY_MARK = '—';
+
   function syncName(){
-    $('outName').textContent = $('nameInput').value.toUpperCase();
+    const val = $('nameInput').value.trim();
+    $('outName').textContent = val ? val.toUpperCase() : EMPTY_MARK;
   }
 
   function syncRace(){
     const val = $('raceSelect').value;
-    $('outRace').textContent = (RACE_LABELS[currentLang] && RACE_LABELS[currentLang][val]) || val;
+    $('outRace').textContent = val ? ((RACE_LABELS[currentLang] && RACE_LABELS[currentLang][val]) || val) : EMPTY_MARK;
   }
 
   function syncDc(){
-    $('outDc').textContent = $('dcSelect').value;
+    const val = $('dcSelect').value;
+    $('outDc').textContent = val || EMPTY_MARK;
   }
 
   function syncWorld(){
-    $('outWorld').textContent = $('worldSelect').value;
+    const val = $('worldSelect').value;
+    $('outWorld').textContent = val || EMPTY_MARK;
+  }
+
+  function placeholderOptionHtml(){
+    return '<option value="" class="select-placeholder">' + I18N[currentLang].selectPlaceholder + '</option>';
   }
 
   function populateWorldOptions(dcValue, preserveWorld){
     const worldSelect = $('worldSelect');
     const worlds = DC_WORLDS[dcValue] || [];
-    const keep = preserveWorld && worlds.indexOf(preserveWorld) !== -1 ? preserveWorld : worlds[0];
-    worldSelect.innerHTML = worlds.map(w => '<option value="'+w+'">'+w+'</option>').join('');
+    // If the previously selected world isn't valid for the new DC, fall back to the
+    // placeholder rather than auto-picking the first world (confirmed with user).
+    const keep = preserveWorld && worlds.indexOf(preserveWorld) !== -1 ? preserveWorld : '';
+    worldSelect.innerHTML = placeholderOptionHtml() + worlds.map(w => '<option value="'+w+'">'+w+'</option>').join('');
     worldSelect.value = keep;
   }
 
   function syncRoleJob(){
     const roleVal = $('roleSelect').value;
     const jobVal = $('jobSelect').value;
-    const roleLabel = (ROLE_LABELS[currentLang] && ROLE_LABELS[currentLang][roleVal]) || roleVal;
-    const jobLabel = (JOB_LABELS[currentLang] && JOB_LABELS[currentLang][jobVal]) || jobVal;
+    const roleLabel = roleVal ? ((ROLE_LABELS[currentLang] && ROLE_LABELS[currentLang][roleVal]) || roleVal) : EMPTY_MARK;
+    const jobLabel = jobVal ? ((JOB_LABELS[currentLang] && JOB_LABELS[currentLang][jobVal]) || jobVal) : EMPTY_MARK;
     $('outRoleJob').textContent = roleLabel + ' / ' + jobLabel;
   }
 
   function populateJobOptions(roleValue, preserveJob){
     const jobSelect = $('jobSelect');
     const jobs = ROLE_JOBS[roleValue] || [];
-    const keep = preserveJob && jobs.indexOf(preserveJob) !== -1 ? preserveJob : jobs[0];
+    // Same rule as WORLD: reset to placeholder instead of auto-selecting the first job.
+    const keep = preserveJob && jobs.indexOf(preserveJob) !== -1 ? preserveJob : '';
     const labels = JOB_LABELS[currentLang] || JOB_LABELS.en;
-    jobSelect.innerHTML = jobs.map(code => '<option value="'+code+'">' + (labels[code] || code) + '</option>').join('');
+    jobSelect.innerHTML = placeholderOptionHtml() + jobs.map(code => '<option value="'+code+'">' + (labels[code] || code) + '</option>').join('');
     jobSelect.value = keep;
   }
 
   function syncBehavior(){
-    $('outBehavior').textContent = $('behaviorInput').value.toUpperCase();
+    const val = $('behaviorInput').value.trim();
+    $('outBehavior').textContent = val ? val.toUpperCase() : EMPTY_MARK;
   }
 
   function syncRemarks(){
-    $('outRemarks').textContent = $('remarksInput').value.toUpperCase();
+    const val = $('remarksInput').value.trim();
+    $('outRemarks').textContent = val ? val.toUpperCase() : EMPTY_MARK;
   }
 
   function labelDictFor(groupId){
@@ -909,15 +947,21 @@
       const key = el.dataset.i18n;
       if(I18N[lang] && I18N[lang][key] !== undefined) el.textContent = I18N[lang][key];
     });
-    document.querySelectorAll('#raceSelect option').forEach(opt => {
+    document.querySelectorAll('#raceSelect option:not(.select-placeholder)').forEach(opt => {
       opt.textContent = RACE_LABELS[lang][opt.value] || opt.value;
     });
-    document.querySelectorAll('#roleSelect option').forEach(opt => {
+    document.querySelectorAll('#roleSelect option:not(.select-placeholder)').forEach(opt => {
       opt.textContent = ROLE_LABELS[lang][opt.value] || opt.value;
     });
-    document.querySelectorAll('#jobSelect option').forEach(opt => {
+    document.querySelectorAll('#jobSelect option:not(.select-placeholder)').forEach(opt => {
       opt.textContent = JOB_LABELS[lang][opt.value] || opt.value;
     });
+    // Single pass covers every select's placeholder option (race/dc/role are static,
+    // world/job are regenerated by populate*Options) regardless of current DC/ROLE state.
+    document.querySelectorAll('.select-placeholder').forEach(opt => {
+      opt.textContent = I18N[lang].selectPlaceholder;
+    });
+    updateFieldPlaceholders(lang);
     updateTitles();
     updateBehaviorRemarksLabels();
     updateCheckboxLabels();
@@ -1148,12 +1192,31 @@
     return active ? active.dataset.format : 'png';
   }
 
+  function setupSizeGroup(){
+    const group = $('sizeGroup');
+    group.querySelectorAll('.chk-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        group.querySelectorAll('.chk-btn').forEach(b => b.classList.remove('checked'));
+        btn.classList.add('checked');
+      });
+    });
+  }
+
+  function getSelectedExportWidth(){
+    const active = document.querySelector('#sizeGroup .chk-btn.checked');
+    return active ? parseInt(active.dataset.width, 10) : 2160;
+  }
+
   function setupDownload(){
     $('downloadBtn').addEventListener('click', () => {
       const target = $('caseFile');
       const wasSelected = imgSelected;
       selectImage(false);
-      html2canvas(target, { backgroundColor: '#ffffff', scale: 2, useCORS: true }).then(canvas => {
+      // Preview stays at its on-screen size; scale is derived so the exported canvas
+      // matches the chosen OUTPUT SIZE regardless of the card's current rendered width.
+      const exportWidth = getSelectedExportWidth();
+      const renderScale = exportWidth / target.offsetWidth;
+      html2canvas(target, { backgroundColor: '#ffffff', scale: renderScale, useCORS: true }).then(canvas => {
         if(wasSelected) selectImage(true);
         const format = getSelectedFormat();
         const fileNo = pad3($('fileNoInput').value);
@@ -1208,6 +1271,7 @@
     setupImageUpload();
     setupImageInteraction();
     setupFormatGroup();
+    setupSizeGroup();
     setupLangGroup();
     setupDownload();
     bindLiveInputs();
