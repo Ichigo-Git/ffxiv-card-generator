@@ -826,7 +826,7 @@
 
   function syncName(){
     const val = $('nameInput').value.trim();
-    $('outName').textContent = val ? val.toUpperCase() : EMPTY_MARK;
+    $('outName').textContent = val ? val : EMPTY_MARK;
   }
 
   function syncRace(){
