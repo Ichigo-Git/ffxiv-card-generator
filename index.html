@@ -284,6 +284,17 @@
   #imgHandleLayer.active .img-handle,
   #imgHandleLayer.active .img-selection-box{ display:block; }
 
+  /* ---- mobile / touch adjustments (layout only — the export target #caseFile and its
+     export resolution are completely untouched by these rules) ---- */
+  @media (max-width:1024px){
+    /* 16px+ prevents iOS Safari from auto-zooming the page when an input gets focus */
+    .cp-input, .cp-select, .cp-textarea{ font-size:16px; }
+  }
+  @media (pointer:coarse){
+    .chk-btn{ padding:.65rem .8rem; }
+    .img-handle{ width:22px; height:22px; }
+  }
+
   /* ---- stamp: reworked as a distressed official field seal ---- */
   .stamp-wrap{
     position:relative;
@@ -343,13 +354,13 @@
   </filter>
 </svg>
 
-<div class="max-w-7xl mx-auto px-5 py-8">
+<div class="max-w-7xl mx-auto px-4 sm:px-5 py-6 sm:py-8">
 
   <div class="border-b border-[var(--ink)] pb-4 mb-8 flex items-end justify-between flex-wrap gap-3">
     <div>
       <div class="cp-label mb-1" data-i18n="eyebrow">CLASSIFIED RECORDS DIVISION</div>
       <div class="flex items-center gap-3 flex-wrap">
-        <h1 class="font-display text-3xl md:text-4xl font-bold tracking-wide2">FFXIV CASE FILE GENERATOR</h1>
+        <h1 class="font-display text-2xl sm:text-3xl md:text-4xl font-bold tracking-wide2">FFXIV CASE FILE GENERATOR</h1>
         <!-- language toggle: EN is default; structure supports adding more languages (e.g. KO) later -->
         <div class="flex gap-1" id="langGroup">
           <div class="chk-btn checked" style="padding:.3rem .65rem; font-size:.62rem;" data-lang="en">EN</div>
@@ -357,7 +368,7 @@
         </div>
       </div>
     </div>
-    <button id="downloadBtn" class="font-display text-xs tracking-wide2 border-2 border-[var(--ink)] px-4 py-2 bg-[var(--ink)] text-[#f0eee3] hover:bg-transparent hover:text-[var(--ink)] transition-colors">
+    <button id="downloadBtn" class="w-full sm:w-auto font-display text-xs tracking-wide2 border-2 border-[var(--ink)] px-4 py-3 sm:py-2 bg-[var(--ink)] text-[#f0eee3] hover:bg-transparent hover:text-[var(--ink)] transition-colors">
       ⬇ FILE DOWNLOAD
     </button>
   </div>
@@ -414,7 +425,7 @@
       </div>
 
       <!-- dc / world -->
-      <div class="grid grid-cols-2 gap-3 mb-4">
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-4">
         <div>
           <label class="cp-label" data-i18n="lblDc">DC</label>
           <select id="dcSelect" class="cp-select">
@@ -434,7 +445,7 @@
       </div>
 
       <!-- role / job -->
-      <div class="grid grid-cols-2 gap-3 mb-5">
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-5">
         <div>
           <label class="cp-label" data-i18n="lblRole">ROLE</label>
           <select id="roleSelect" class="cp-select">
@@ -456,7 +467,7 @@
       <!-- activity : order = SNS CONTACT > IN-GAME PLAY > PHOTO SESSION > PVP > RAID -->
       <div class="mb-5">
         <label class="cp-label" data-i18n="lblActivity">ACTIVITY</label>
-        <div class="grid grid-cols-2 gap-2" id="activityGroup">
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-2" id="activityGroup">
           <div class="chk-btn checked" data-value="SNS CONTACT"><span class="chk-box"><svg viewBox="0 0 10 10"><path d="M1 5 L4 8 L9 1" stroke="currentColor" stroke-width="1.6" fill="none"/></svg></span><span class="chk-label">SNS CONTACT</span></div>
           <div class="chk-btn checked" data-value="IN-GAME PLAY"><span class="chk-box"><svg viewBox="0 0 10 10"><path d="M1 5 L4 8 L9 1" stroke="currentColor" stroke-width="1.6" fill="none"/></svg></span><span class="chk-label">IN-GAME PLAY</span></div>
           <div class="chk-btn" data-value="PHOTO SESSION"><span class="chk-box"><svg viewBox="0 0 10 10"><path d="M1 5 L4 8 L9 1" stroke="currentColor" stroke-width="1.6" fill="none"/></svg></span><span class="chk-label">PHOTO SESSION</span></div>
@@ -468,7 +479,7 @@
       <!-- style -->
       <div class="mb-5">
         <label class="cp-label" data-i18n="lblStyle">STYLE</label>
-        <div class="grid grid-cols-2 gap-2" id="styleGroup">
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-2" id="styleGroup">
           <div class="chk-btn checked" data-value="CASUAL PACE"><span class="chk-box"><svg viewBox="0 0 10 10"><path d="M1 5 L4 8 L9 1" stroke="currentColor" stroke-width="1.6" fill="none"/></svg></span><span class="chk-label">CASUAL PACE</span></div>
           <div class="chk-btn checked" data-value="SLOW CONNECTION"><span class="chk-box"><svg viewBox="0 0 10 10"><path d="M1 5 L4 8 L9 1" stroke="currentColor" stroke-width="1.6" fill="none"/></svg></span><span class="chk-label">SLOW CONNECTION</span></div>
           <div class="chk-btn" data-value="CHAT FRIENDLY"><span class="chk-box"><svg viewBox="0 0 10 10"><path d="M1 5 L4 8 L9 1" stroke="currentColor" stroke-width="1.6" fill="none"/></svg></span><span class="chk-label">CHAT FRIENDLY</span></div>
@@ -510,7 +521,7 @@
       </div>
 
       <!-- date / file no -->
-      <div class="grid grid-cols-2 gap-3 items-end mb-5">
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 items-end mb-5">
         <div>
           <label class="cp-label" data-i18n="lblDateLogged">DATE LOGGED</label>
           <input id="dateInput" type="date" class="cp-input">
@@ -1080,35 +1091,41 @@
     const img = $('outImage');
     const minScale = 0.15; // prevents scaling the photo down to nothing
 
-    img.addEventListener('mousedown', (e) => {
+    img.addEventListener('pointerdown', (e) => {
       if(!imgState) return;
       e.preventDefault();
       selectImage(true);
+      img.setPointerCapture(e.pointerId);
       const rect = wrap.getBoundingClientRect();
       const w = rect.width, h = rect.height;
       const startX = e.clientX, startY = e.clientY;
       const startState = Object.assign({}, imgState);
 
       function onMove(ev){
+        if(ev.pointerId !== e.pointerId) return;
         const dxFrac = (ev.clientX - startX) / w;
         const dyFrac = (ev.clientY - startY) / h;
         // pure translation: scale is untouched, so the ratio can't change here
         imgState = Object.assign({}, startState, { xFrac: startState.xFrac + dxFrac, yFrac: startState.yFrac + dyFrac });
         applyImageTransform();
       }
-      function onUp(){
-        document.removeEventListener('mousemove', onMove);
-        document.removeEventListener('mouseup', onUp);
+      function onUp(ev){
+        if(ev.pointerId !== e.pointerId) return;
+        img.removeEventListener('pointermove', onMove);
+        img.removeEventListener('pointerup', onUp);
+        img.removeEventListener('pointercancel', onUp);
       }
-      document.addEventListener('mousemove', onMove);
-      document.addEventListener('mouseup', onUp);
+      img.addEventListener('pointermove', onMove);
+      img.addEventListener('pointerup', onUp);
+      img.addEventListener('pointercancel', onUp);
     });
 
     document.querySelectorAll('.img-handle').forEach(handle => {
-      handle.addEventListener('mousedown', (e) => {
+      handle.addEventListener('pointerdown', (e) => {
         if(!imgState) return;
         e.preventDefault();
         e.stopPropagation();
+        handle.setPointerCapture(e.pointerId);
         const type = handle.dataset.handle;
         const rect = wrap.getBoundingClientRect();
         const w = rect.width, h = rect.height;
@@ -1116,6 +1133,7 @@
         const baseWPx0 = baseWFrac * w;                // width at scale = 1, for this wrap size
 
         function onMove(ev){
+          if(ev.pointerId !== e.pointerId) return;
           const mouseX = ev.clientX - rect.left;
           // anchor = the corner diagonally opposite the dragged handle; it stays fixed
           let anchorX, anchorY, newW;
@@ -1140,17 +1158,20 @@
           imgState = { xFrac: boxX/w, yFrac: boxY/h, scale: newScale };
           applyImageTransform();
         }
-        function onUp(){
-          document.removeEventListener('mousemove', onMove);
-          document.removeEventListener('mouseup', onUp);
+        function onUp(ev){
+          if(ev.pointerId !== e.pointerId) return;
+          handle.removeEventListener('pointermove', onMove);
+          handle.removeEventListener('pointerup', onUp);
+          handle.removeEventListener('pointercancel', onUp);
         }
-        document.addEventListener('mousemove', onMove);
-        document.addEventListener('mouseup', onUp);
+        handle.addEventListener('pointermove', onMove);
+        handle.addEventListener('pointerup', onUp);
+        handle.addEventListener('pointercancel', onUp);
       });
     });
 
-    // deselect (hide handles) when clicking anywhere outside the image frame
-    document.addEventListener('mousedown', (e) => {
+    // deselect (hide handles) when tapping/clicking anywhere outside the image frame
+    document.addEventListener('pointerdown', (e) => {
       if(!wrap.contains(e.target)) selectImage(false);
     });
 
