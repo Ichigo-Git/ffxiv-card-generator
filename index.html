@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>CASE FILE GENERATOR</title>
 <script src="https://cdn.tailwindcss.com"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/html-to-image/1.11.13/html-to-image.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/html2canvas-pro@1.5.0/dist/html2canvas-pro.min.js"></script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Oswald:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&family=Stardos+Stencil:wght@400;700&family=Share+Tech+Mono&display=swap" rel="stylesheet">
 <style>
@@ -656,7 +656,7 @@
      overflow:hidden (needed to keep the exported card a clean 3:4 crop) can never clip
      these controls, no matter how far the photo is scaled or dragged. Positioned via JS
      using getBoundingClientRect(), so it always tracks the frame exactly. Never captured
-     in the downloaded image — hidden right before the export runs. -->
+     in the downloaded image — hidden right before html2canvas runs. -->
 <div id="imgHandleLayer">
   <div class="img-selection-box" id="imgSelectionBox"></div>
   <div class="img-handle" data-handle="nw"></div>
@@ -1240,12 +1240,7 @@
       // matches the chosen OUTPUT SIZE regardless of the card's current rendered width.
       const exportWidth = getSelectedExportWidth();
       const renderScale = exportWidth / target.offsetWidth;
-      // html-to-image renders the node through the browser's real engine (via an SVG
-      // foreignObject) instead of re-implementing CSS like html2canvas did — this is what
-      // makes the multi-layer gradient backgrounds, the SVG grunge filter on the stamp, and
-      // the mix-blend-mode effects on the watermark/stamp come out matching the on-screen
-      // preview instead of collapsing to a flat background-color.
-      htmlToImage.toCanvas(target, { backgroundColor: '#ffffff', pixelRatio: renderScale, cacheBust: true }).then(canvas => {
+      html2canvas(target, { backgroundColor: '#ffffff', scale: renderScale, useCORS: true }).then(canvas => {
         if(wasSelected) selectImage(true);
         const format = getSelectedFormat();
         const fileNo = pad3($('fileNoInput').value);
