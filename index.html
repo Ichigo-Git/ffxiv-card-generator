@@ -21,7 +21,1338 @@
   }
   *{box-sizing:border-box;}
   body{
+    background:#d9d5c7;<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CASE FILE GENERATOR</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Oswald:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&family=Stardos+Stencil:wght@400;700&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --paper:#eeece3;
+    --paper-dark:#e3e0d3;
+    --ink:#191714;
+    --ink-soft:#57544d;
+    --line:#c9c4b4;
+    --stamp:#9c2a1d;
+    --navy:#0e1a2b;
+    --black-archive:#0a0a0a;
+  }
+  *{box-sizing:border-box;}
+  body{
     background:#d9d5c7;
+    font-family:'JetBrains Mono', monospace;
+    color:var(--ink);
+  }
+  .font-display{ font-family:'Oswald', sans-serif; }
+  .tracking-wide2{ letter-spacing:.18em; }
+  .tracking-wide3{ letter-spacing:.28em; }
+
+  /* ---- control panel inputs ---- */
+  .cp-input, .cp-select, .cp-textarea{
+    width:100%;
+    background:#f7f5ee;
+    border:1px solid var(--line);
+    color:var(--ink);
+    padding:.55rem .7rem;
+    font-family:'JetBrains Mono', monospace;
+    font-size:.82rem;
+    letter-spacing:.03em;
+    outline:none;
+    transition:border-color .15s ease, background .15s ease;
+  }
+  .cp-input:focus, .cp-select:focus, .cp-textarea:focus{
+    border-color:var(--ink);
+    background:#fffdf7;
+  }
+  .cp-label{
+    font-size:.66rem;
+    letter-spacing:.18em;
+    color:var(--ink-soft);
+    font-weight:600;
+    margin-bottom:.35rem;
+    display:block;
+  }
+  .cp-select{ appearance:none; -webkit-appearance:none;
+    background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='10' height='6'><path d='M0 0 L5 6 L10 0Z' fill='%23191714'/></svg>");
+    background-repeat:no-repeat; background-position:right .8rem center; padding-right:2rem;
+  }
+
+  .chk-btn{
+    display:flex; align-items:center; gap:.5rem;
+    border:1px solid var(--line);
+    background:#f7f5ee;
+    padding:.5rem .65rem;
+    font-size:.72rem;
+    letter-spacing:.06em;
+    cursor:pointer;
+    user-select:none;
+    transition:background .15s ease, color .15s ease, border-color .15s ease;
+  }
+  .chk-btn.checked{
+    background:var(--ink);
+    color:#f0eee3;
+    border-color:var(--ink);
+  }
+  .chk-box{
+    width:14px;height:14px;
+    border:1.5px solid currentColor;
+    display:flex;align-items:center;justify-content:center;
+    flex:none;
+  }
+  .chk-box svg{ width:10px;height:10px; opacity:0; }
+  .chk-btn.checked .chk-box svg{ opacity:1; }
+  .chk-label{ line-height:1.2; }
+
+  .bg-swatch{
+    border:1px solid var(--line);
+    background:#f7f5ee;
+    padding:.7rem .5rem;
+    font-size:.62rem;
+    letter-spacing:.1em;
+    cursor:pointer;
+    text-align:center;
+    transition:border-color .15s ease, transform .1s ease;
+  }
+  .bg-swatch:hover{ transform:translateY(-1px); }
+  .bg-swatch.active{ border-color:var(--ink); border-width:2px; font-weight:600; }
+  .bg-preview{ height:28px; width:100%; margin-bottom:.45rem; border:1px solid var(--line); }
+
+  /* ---- case file panel : fixed to a 3:4 portrait ratio for clean X (Twitter) posting ---- */
+  #caseFileOuter{
+    width:100%;
+    max-width:620px;
+    margin:0 auto;
+  }
+  #caseFile{
+    position:relative;
+    overflow:hidden;
+    background:var(--paper);
+    color:var(--ink);
+    aspect-ratio:3/4;
+    display:flex;
+    flex-direction:column;
+    transition:background .25s ease, color .25s ease;
+  }
+  /* TACTICAL BLUE DOT — near-future SF console: tiny recessed dot grid + a glowing
+     radial core that sinks to near-black at the corners for depth */
+  #caseFile.theme-tactical{
+    background-color:#050b16;
+    background-image:
+      radial-gradient(ellipse at center, transparent 38%, rgba(0,0,0,.7) 100%),
+      radial-gradient(ellipse at 50% 16%, rgba(75,155,255,.5), rgba(9,20,42,0) 58%),
+      radial-gradient(circle at center, rgba(150,196,255,.4) .5px, transparent 1.1px);
+    background-size:100% 100%, 100% 100%, 6px 6px;
+    color:#dce7fb;
+  }
+  /* CLASSIFIED TEXTURE — worn vintage dossier paper: fine grain, age stains,
+     a warm center glow and a burned-edge vignette. No digital stripes. */
+  #caseFile.theme-classified{
+    background-color:#ddd2ab;
+    background-image:
+      repeating-linear-gradient(0deg, rgba(75,58,32,.05) 0px, transparent 1px, transparent 2px),
+      repeating-linear-gradient(90deg, rgba(75,58,32,.04) 0px, transparent 1px, transparent 3px),
+      radial-gradient(ellipse at 18% 22%, rgba(133,103,55,.18), transparent 50%),
+      radial-gradient(ellipse at 82% 74%, rgba(105,78,40,.16), transparent 55%),
+      radial-gradient(ellipse at 50% 42%, rgba(255,250,224,.55), rgba(212,197,157,0) 62%),
+      radial-gradient(ellipse at center, transparent 52%, rgba(54,39,19,.42) 100%);
+    background-size:3px 3px, 4px 4px, auto, auto, auto, auto;
+    color:#2a2318;
+  }
+  /* DAILY CHRONICLE — a soft, everyday-emo diary page: clean white ground with a
+     diagonal sunset-pink / lavender wash bleeding in from the top-left, a total
+     tonal departure from the two center-radiating themes above */
+  #caseFile.theme-daily{
+    --ink:#5c3c2e;
+    --ink-soft:#96725f;
+    --line:#e7bcc4;
+    --stamp:#8a5136;
+    background-color:#ffffff;
+    background-image:
+      linear-gradient(135deg, rgba(255,255,255,0) 8%, rgba(248,206,209,.65) 52%, rgba(219,201,235,.6) 100%);
+    color:#5c3c2e;
+  }
+  #caseFile.theme-tactical .cf-line{ border-color:rgba(255,255,255,.18) !important; }
+  #caseFile.theme-tactical .cf-soft{ color:rgba(230,230,230,.55) !important; }
+
+  .cf-inner{
+    position:relative;
+    z-index:10;
+    display:flex;
+    flex-direction:column;
+    height:100%;
+    padding:5.5% 6% 4.5%;
+    gap:3.2%;
+  }
+
+  .watermark{
+    position:absolute;
+    z-index:30;
+    top:80%;
+    left:52%;
+    transform:translate(-50%,-50%) rotate(-14deg);
+    font-family:'Stardos Stencil', 'Share Tech Mono', monospace;
+    font-weight:700;
+    font-size:1.9rem;
+    letter-spacing:.34em;
+    text-indent:.34em; /* balances the trailing letter-spacing gap so the block reads centered */
+    white-space:nowrap;
+    pointer-events:none;
+    color:var(--stamp);
+    opacity:.4;
+    mix-blend-mode:multiply;
+    /* faint ink-roller unevenness: fine low-contrast diagonal banding across the letterforms */
+    -webkit-mask-image: repeating-linear-gradient(115deg, #000 0px, #000 2px, rgba(0,0,0,.7) 2px, rgba(0,0,0,.7) 3px);
+    mask-image: repeating-linear-gradient(115deg, #000 0px, #000 2px, rgba(0,0,0,.7) 2px, rgba(0,0,0,.7) 3px);
+    filter: contrast(1.12) blur(.3px);
+  }
+  /* MILITARY (tactical): stencil-white ink, screened onto the navy/photo like a HUD readout */
+  #caseFile.theme-tactical .watermark{
+    color:#ffffff;
+    opacity:.42;
+    mix-blend-mode:overlay;
+  }
+  /* CLASSICAL (classified): the same red-brown ink as the corner date stamp, multiplied into paper and photo */
+  #caseFile.theme-classified .watermark{
+    color:var(--stamp);
+    opacity:.4;
+    mix-blend-mode:multiply;
+    padding:.4em .65em;
+  }
+  /* the frame lives on a separate ::before layer so the distressed-edge filter (the same
+     one used on the corner stamp's outer ring) only roughens the border, never the text —
+     matched to the stamp's own ring thickness (3px) for a consistent "same ink" feel */
+  #caseFile.theme-classified .watermark::before{
+    content:'';
+    position:absolute;
+    inset:0;
+    border:3px solid currentColor;
+    filter:url(#stampGrunge);
+    pointer-events:none;
+  }
+  /* TRAVEL NOTE (daily): a soft vintage sepia-brown that sinks into paper and leather alike */
+  #caseFile.theme-daily .watermark{
+    color:var(--stamp);
+    opacity:.38;
+    mix-blend-mode:multiply;
+  }
+
+  /* image hero — the FF14 screenshot is the star, so it gets the most vertical room.
+     The photo itself is draggable/resizable by the user; .cf-image-wrap no longer clips
+     directly so the corner resize handles stay visible even when the photo is scaled
+     past the frame edge — only .cf-image-clip (below) clips the photo itself. */
+  .cf-image-wrap{
+    flex:1 1 auto;
+    min-height:0;
+    position:relative;
+    border:1px solid var(--line);
+    background:rgba(0,0,0,.12);
+  }
+  #caseFile.theme-tactical .cf-image-wrap{ border-color:rgba(255,255,255,.22); }
+
+  .cf-image-clip{
+    position:absolute;
+    inset:0;
+    overflow:hidden;
+  }
+  #outImage{
+    position:absolute;
+    /* Tailwind's preflight sets `img { max-width:100%; height:auto }` globally — left in
+       place, that silently clamps our explicit width while height keeps growing as
+       calculated, which is what was causing the "snags on the frame" distortion. */
+    max-width:none;
+    max-height:none;
+    display:block;
+    cursor:grab;
+    user-select:none;
+    -webkit-user-drag:none;
+    touch-action:none;
+  }
+  #outImage:active{ cursor:grabbing; }
+
+  /* Resize handles + selection box live in a position:fixed overlay OUTSIDE #caseFile,
+     so they're never clipped by the card's own overflow:hidden — even when the photo is
+     scaled far past the frame, the controls stay reachable. Their screen position is
+     computed in JS from the frame's getBoundingClientRect() + the current image box. */
+  #imgHandleLayer{
+    position:fixed;
+    inset:0;
+    pointer-events:none;
+    z-index:9999;
+  }
+  .img-selection-box{
+    position:fixed;
+    border:1.5px dashed var(--ink);
+    display:none;
+    pointer-events:none;
+  }
+  .img-handle{
+    position:fixed;
+    width:14px;
+    height:14px;
+    transform:translate(-50%,-50%);
+    background:#fff;
+    border:2px solid var(--ink);
+    border-radius:2px;
+    display:none;
+    pointer-events:auto;
+    cursor:nwse-resize;
+    touch-action:none;
+  }
+  .img-handle[data-handle="ne"], .img-handle[data-handle="sw"]{ cursor:nesw-resize; }
+  #imgHandleLayer.active .img-handle,
+  #imgHandleLayer.active .img-selection-box{ display:block; }
+
+  /* ---- mobile / touch adjustments (layout only — the export target #caseFile and its
+     export resolution are completely untouched by these rules) ---- */
+  @media (max-width:1024px){
+    /* 16px+ prevents iOS Safari from auto-zooming the page when an input gets focus */
+    .cp-input, .cp-select, .cp-textarea{ font-size:16px; }
+  }
+  @media (pointer:coarse){
+    .chk-btn{ padding:.65rem .8rem; }
+    .img-handle{ width:22px; height:22px; }
+  }
+
+  /* ---- stamp: reworked as a distressed official field seal ---- */
+  .stamp-wrap{
+    position:relative;
+    width:30%;
+    aspect-ratio:1/1;
+    flex:none;
+    transform:rotate(-7deg);
+    color:var(--stamp);
+    mix-blend-mode:multiply;
+  }
+  #caseFile.theme-tactical .stamp-wrap{
+    color:#ff6b52;
+    mix-blend-mode:screen;
+  }
+  .stamp-ring-outer, .stamp-ring-inner{
+    position:absolute;
+    border-radius:50%;
+    border:1px solid currentColor;
+  }
+  .stamp-ring-outer{ inset:0; border-width:3px; filter:url(#stampGrunge); }
+  .stamp-ring-inner{ inset:11%; opacity:.8; filter:url(#stampGrunge); }
+  .stamp-content{
+    position:absolute; inset:0;
+    display:flex; flex-direction:column; align-items:center; justify-content:center;
+    text-align:center;
+    mix-blend-mode:normal;
+    color:var(--stamp);
+    padding:0 12%;
+  }
+  #caseFile.theme-tactical .stamp-content{ color:#ff8069; }
+  .stamp-eyebrow{ font-size:.5rem; letter-spacing:.22em; opacity:.7; font-weight:600; line-height:1.5; }
+  .stamp-divider{ width:26%; height:1px; background:currentColor; opacity:.55; margin:.25rem 0; }
+  .stamp-date{ font-size:1.05rem; font-weight:700; letter-spacing:.02em; line-height:1.15; }
+  .stamp-fileno{ font-size:.6rem; letter-spacing:.12em; font-weight:600; margin-top:.1rem; }
+
+  .check-icon{ width:11px;height:11px; flex:none; }
+  .line-clamp-3{ display:-webkit-box; -webkit-line-clamp:3; -webkit-box-orient:vertical; overflow:hidden; }
+  .line-clamp-2{ display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; }
+  .field-fixed-6{
+    display:-webkit-box;
+    -webkit-line-clamp:6;
+    -webkit-box-orient:vertical;
+    overflow:hidden;
+    line-height:1.2;
+    height:7.2em;
+    white-space:pre-line; /* preserves line breaks typed in the textarea, still wraps long lines */
+  }
+</style>
+</head>
+<body class="min-h-screen">
+
+<!-- distressed-edge filter used by the stamp rings -->
+<svg width="0" height="0" style="position:absolute;overflow:hidden">
+  <filter id="stampGrunge" x="-30%" y="-30%" width="160%" height="160%">
+    <feTurbulence type="fractalNoise" baseFrequency="0.85" numOctaves="2" seed="11" result="noise"/>
+    <feDisplacementMap in="SourceGraphic" in2="noise" scale="3.2"/>
+  </filter>
+</svg>
+
+<div class="max-w-7xl mx-auto px-4 sm:px-5 py-6 sm:py-8">
+
+  <div class="border-b border-[var(--ink)] pb-4 mb-8 flex items-end justify-between flex-wrap gap-3">
+    <div>
+      <div class="cp-label mb-1" data-i18n="eyebrow">CLASSIFIED RECORDS DIVISION</div>
+      <div class="flex items-center gap-3 flex-wrap">
+        <h1 class="font-display text-2xl sm:text-3xl md:text-4xl font-bold tracking-wide2">FFXIV CASE FILE GENERATOR</h1>
+        <!-- language toggle: EN is default; structure supports adding more languages (e.g. KO) later -->
+        <div class="flex gap-1" id="langGroup">
+          <div class="chk-btn checked" style="padding:.3rem .65rem; font-size:.62rem;" data-lang="en">EN</div>
+          <div class="chk-btn" style="padding:.3rem .65rem; font-size:.62rem;" data-lang="ja">JA</div>
+        </div>
+      </div>
+    </div>
+    <button id="downloadBtn" class="w-full sm:w-auto font-display text-xs tracking-wide2 border-2 border-[var(--ink)] px-4 py-3 sm:py-2 bg-[var(--ink)] text-[#f0eee3] hover:bg-transparent hover:text-[var(--ink)] transition-colors">
+      ⬇ FILE DOWNLOAD
+    </button>
+  </div>
+
+  <div class="grid grid-cols-1 lg:grid-cols-[400px_1fr] gap-6 items-start">
+
+    <!-- ============ CONTROL PANEL ============ -->
+    <div class="border border-[var(--line)] bg-[#f4f2ea] p-5">
+      <div class="mb-5 pb-3 border-b border-[var(--line)]">
+        <h2 class="font-display text-xl font-semibold tracking-wide2" data-i18n="cpTitle">CONTROL PANEL</h2>
+        <p class="cp-label mt-1 mb-0" data-i18n="cpSubtitle">COMPILE SUBJECT DOSSIER</p>
+      </div>
+
+      <!-- screenshot -->
+      <div class="mb-4">
+        <label class="cp-label" data-i18n="lblScreenshot">SUBJECT SCREENSHOT</label>
+        <div class="flex items-center gap-3">
+          <div id="thumbPreview" class="w-16 h-16 bg-[#ddd8c6] border border-[var(--line)] flex items-center justify-center text-[9px] text-[var(--ink-soft)] overflow-hidden">NO IMG</div>
+          <label class="chk-btn cursor-pointer">
+            <span data-i18n="btnUpload">UPLOAD IMAGE</span>
+            <input type="file" id="imageInput" accept="image/*" class="hidden">
+          </label>
+        </div>
+      </div>
+
+      <!-- name -->
+      <div class="mb-4">
+        <label class="cp-label" data-i18n="lblName">CHARACTER NAME</label>
+        <input id="nameInput" type="text" class="cp-input" value="">
+      </div>
+
+      <!-- race -->
+      <div class="mb-4">
+        <label class="cp-label" data-i18n="lblRace">RACE</label>
+        <select id="raceSelect" class="cp-select">
+          <option value="" class="select-placeholder" selected>SELECT</option>
+          <option value="hyur-midlander">Hyur / Midlander</option>
+          <option value="hyur-highlander">Hyur / Highlander</option>
+          <option value="elezen-wildwood">Elezen / Wildwood</option>
+          <option value="elezen-duskwight">Elezen / Duskwight</option>
+          <option value="lalafell-plainsfolk">Lalafell / Plainsfolk</option>
+          <option value="lalafell-dunesfolk">Lalafell / Dunesfolk</option>
+          <option value="miqote-seeker">Miqo'te / Seeker</option>
+          <option value="miqote-keeper">Miqo'te / Keeper</option>
+          <option value="roegadyn-seawolf">Roegadyn / Sea Wolf</option>
+          <option value="roegadyn-hellsguard">Roegadyn / Hellsguard</option>
+          <option value="aura-raen">Au Ra / Raen</option>
+          <option value="aura-xaela">Au Ra / Xaela</option>
+          <option value="hrothgar-helion">Hrothgar / Helion</option>
+          <option value="hrothgar-lost">Hrothgar / Lost</option>
+          <option value="viera-rava">Viera / Rava</option>
+          <option value="viera-veena">Viera / Veena</option>
+        </select>
+      </div>
+
+      <!-- dc / world -->
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-4">
+        <div>
+          <label class="cp-label" data-i18n="lblDc">DC</label>
+          <select id="dcSelect" class="cp-select">
+            <option value="" class="select-placeholder" selected>SELECT</option>
+            <option>Elemental</option>
+            <option>Gaia</option>
+            <option>Mana</option>
+            <option>Meteor</option>
+          </select>
+        </div>
+        <div>
+          <label class="cp-label" data-i18n="lblWorld">WORLD</label>
+          <select id="worldSelect" class="cp-select">
+            <option value="" class="select-placeholder" selected>SELECT</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- role / job -->
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-5">
+        <div>
+          <label class="cp-label" data-i18n="lblRole">ROLE</label>
+          <select id="roleSelect" class="cp-select">
+            <option value="" class="select-placeholder" selected>SELECT</option>
+            <option value="tank">Tank</option>
+            <option value="healer">Healer</option>
+            <option value="dps">DPS</option>
+            <option value="limited">Limited Job</option>
+          </select>
+        </div>
+        <div>
+          <label class="cp-label" data-i18n="lblJob">JOB</label>
+          <select id="jobSelect" class="cp-select">
+            <option value="" class="select-placeholder" selected>SELECT</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- activity : order = SNS CONTACT > IN-GAME PLAY > PHOTO SESSION > PVP > RAID -->
+      <div class="mb-5">
+        <label class="cp-label" data-i18n="lblActivity">ACTIVITY</label>
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-2" id="activityGroup">
+          <div class="chk-btn checked" data-value="SNS CONTACT"><span class="chk-box"><svg viewBox="0 0 10 10"><path d="M1 5 L4 8 L9 1" stroke="currentColor" stroke-width="1.6" fill="none"/></svg></span><span class="chk-label">SNS CONTACT</span></div>
+          <div class="chk-btn checked" data-value="IN-GAME PLAY"><span class="chk-box"><svg viewBox="0 0 10 10"><path d="M1 5 L4 8 L9 1" stroke="currentColor" stroke-width="1.6" fill="none"/></svg></span><span class="chk-label">IN-GAME PLAY</span></div>
+          <div class="chk-btn" data-value="PHOTO SESSION"><span class="chk-box"><svg viewBox="0 0 10 10"><path d="M1 5 L4 8 L9 1" stroke="currentColor" stroke-width="1.6" fill="none"/></svg></span><span class="chk-label">PHOTO SESSION</span></div>
+          <div class="chk-btn" data-value="PVP"><span class="chk-box"><svg viewBox="0 0 10 10"><path d="M1 5 L4 8 L9 1" stroke="currentColor" stroke-width="1.6" fill="none"/></svg></span><span class="chk-label">PVP</span></div>
+          <div class="chk-btn" data-value="RAID"><span class="chk-box"><svg viewBox="0 0 10 10"><path d="M1 5 L4 8 L9 1" stroke="currentColor" stroke-width="1.6" fill="none"/></svg></span><span class="chk-label">RAID</span></div>
+        </div>
+      </div>
+
+      <!-- style -->
+      <div class="mb-5">
+        <label class="cp-label" data-i18n="lblStyle">STYLE</label>
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-2" id="styleGroup">
+          <div class="chk-btn checked" data-value="CASUAL PACE"><span class="chk-box"><svg viewBox="0 0 10 10"><path d="M1 5 L4 8 L9 1" stroke="currentColor" stroke-width="1.6" fill="none"/></svg></span><span class="chk-label">CASUAL PACE</span></div>
+          <div class="chk-btn checked" data-value="SLOW CONNECTION"><span class="chk-box"><svg viewBox="0 0 10 10"><path d="M1 5 L4 8 L9 1" stroke="currentColor" stroke-width="1.6" fill="none"/></svg></span><span class="chk-label">SLOW CONNECTION</span></div>
+          <div class="chk-btn" data-value="CHAT FRIENDLY"><span class="chk-box"><svg viewBox="0 0 10 10"><path d="M1 5 L4 8 L9 1" stroke="currentColor" stroke-width="1.6" fill="none"/></svg></span><span class="chk-label">CHAT FRIENDLY</span></div>
+          <div class="chk-btn" data-value="PHOTO FOCUSED"><span class="chk-box"><svg viewBox="0 0 10 10"><path d="M1 5 L4 8 L9 1" stroke="currentColor" stroke-width="1.6" fill="none"/></svg></span><span class="chk-label">PHOTO FOCUSED</span></div>
+          <div class="chk-btn" data-value="LOW FREQUENCY"><span class="chk-box"><svg viewBox="0 0 10 10"><path d="M1 5 L4 8 L9 1" stroke="currentColor" stroke-width="1.6" fill="none"/></svg></span><span class="chk-label">LOW FREQUENCY</span></div>
+          <div class="chk-btn" data-value="PLANNED PLAY"><span class="chk-box"><svg viewBox="0 0 10 10"><path d="M1 5 L4 8 L9 1" stroke="currentColor" stroke-width="1.6" fill="none"/></svg></span><span class="chk-label">PLANNED PLAY</span></div>
+        </div>
+      </div>
+
+      <!-- background pattern -->
+      <div class="mb-5">
+        <label class="cp-label" data-i18n="lblBgPattern">BACKGROUND PATTERN</label>
+        <div class="grid grid-cols-3 gap-2" id="bgGroup">
+          <div class="bg-swatch active" data-theme="theme-tactical">
+            <div class="bg-preview" style="background-color:#050b16; background-image:radial-gradient(ellipse at 50% 20%, rgba(75,155,255,.7), rgba(9,20,42,0) 65%), radial-gradient(circle at center, rgba(150,196,255,.55) .5px, transparent 1px); background-size:100%, 4px 4px;"></div>
+            TACTICAL BLUE DOT
+          </div>
+          <div class="bg-swatch" data-theme="theme-classified">
+            <div class="bg-preview" style="background-color:#ddd2ab; background-image:radial-gradient(ellipse at 30% 30%, rgba(133,103,55,.3), transparent 55%), radial-gradient(ellipse at center, transparent 45%, rgba(54,39,19,.5) 100%);"></div>
+            CLASSIFIED TEXTURE
+          </div>
+          <div class="bg-swatch" data-theme="theme-daily">
+            <div class="bg-preview" style="background-color:#ffffff; background-image:linear-gradient(135deg, rgba(255,255,255,0) 8%, rgba(248,206,209,.8) 52%, rgba(219,201,235,.75) 100%);"></div>
+            DAILY CHRONICLE
+          </div>
+        </div>
+      </div>
+
+      <!-- behavior -->
+      <div class="mb-4">
+        <label class="cp-label" data-i18n="lblBehavior">BEHAVIOR PATTERN</label>
+        <textarea id="behaviorInput" class="cp-textarea" rows="4" maxlength="200" placeholder="Example: Enjoys casual interaction, screenshots, and chat.&#10;Happy to build connections at a relaxed pace."></textarea>
+      </div>
+
+      <!-- remarks -->
+      <div class="mb-5">
+        <label class="cp-label" data-i18n="lblRemarks">REMARKS</label>
+        <textarea id="remarksInput" class="cp-textarea" rows="3" maxlength="200" placeholder="Example: Often responds to glamour, studio, and screenshot-editing topics."></textarea>
+      </div>
+
+      <!-- date / file no -->
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 items-end mb-5">
+        <div>
+          <label class="cp-label" data-i18n="lblDateLogged">DATE LOGGED</label>
+          <input id="dateInput" type="date" class="cp-input">
+        </div>
+        <div>
+          <label class="cp-label" data-i18n="lblFileNo">FILE NO. (001-999)</label>
+          <input id="fileNoInput" type="number" min="1" max="999" class="cp-input" value="1">
+        </div>
+      </div>
+
+      <!-- output format -->
+      <div class="mb-5">
+        <label class="cp-label" data-i18n="lblOutputFormat">OUTPUT FORMAT</label>
+        <div class="grid grid-cols-3 gap-2" id="formatGroup">
+          <div class="chk-btn checked" data-format="png"><span class="chk-box"><svg viewBox="0 0 10 10"><path d="M1 5 L4 8 L9 1" stroke="currentColor" stroke-width="1.6" fill="none"/></svg></span><span>PNG</span></div>
+          <div class="chk-btn" data-format="jpg"><span class="chk-box"><svg viewBox="0 0 10 10"><path d="M1 5 L4 8 L9 1" stroke="currentColor" stroke-width="1.6" fill="none"/></svg></span><span>JPG</span></div>
+          <div class="chk-btn" data-format="webp"><span class="chk-box"><svg viewBox="0 0 10 10"><path d="M1 5 L4 8 L9 1" stroke="currentColor" stroke-width="1.6" fill="none"/></svg></span><span>WEBP</span></div>
+        </div>
+      </div>
+
+      <!-- output size : preview stays as-is, this only affects the exported PNG/JPG/WEBP resolution -->
+      <div>
+        <label class="cp-label" data-i18n="lblOutputSize">OUTPUT SIZE</label>
+        <div class="grid grid-cols-1 gap-2" id="sizeGroup">
+          <div class="chk-btn" data-width="1620" data-height="2160"><span class="chk-box"><svg viewBox="0 0 10 10"><path d="M1 5 L4 8 L9 1" stroke="currentColor" stroke-width="1.6" fill="none"/></svg></span><span>1620 &times; 2160 <span data-i18n="sizeLight">(Light)</span></span></div>
+          <div class="chk-btn checked" data-width="2160" data-height="2880"><span class="chk-box"><svg viewBox="0 0 10 10"><path d="M1 5 L4 8 L9 1" stroke="currentColor" stroke-width="1.6" fill="none"/></svg></span><span>2160 &times; 2880 <span data-i18n="sizeStandard">(Standard)</span></span></div>
+          <div class="chk-btn" data-width="2700" data-height="3600"><span class="chk-box"><svg viewBox="0 0 10 10"><path d="M1 5 L4 8 L9 1" stroke="currentColor" stroke-width="1.6" fill="none"/></svg></span><span>2700 &times; 3600 <span data-i18n="sizeHigh">(High-Res)</span></span></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ============ CASE FILE OUTPUT (3:4 portrait, image-forward) ============ -->
+    <div id="caseFileOuter">
+      <div id="caseFile" class="theme-tactical border border-[var(--line)]">
+
+        <div class="cf-inner">
+          <!-- header -->
+          <div class="cf-line flex items-end justify-between border-b-2 border-[var(--ink)] pb-2 flex-none">
+            <h2 id="outTitle" class="font-display text-2xl md:text-3xl font-bold tracking-wide2">CASE FILE</h2>
+            <div class="text-right font-display text-xs md:text-sm tracking-wide2 leading-relaxed">
+              <div><span id="outTitleShort">FILE</span> NO. <span id="outFileNoTop">001</span></div>
+              <div class="cf-soft text-[10px] opacity-70">STATUS: ACTIVE</div>
+            </div>
+          </div>
+
+          <!-- MAIN AREA (~70%): 4:5 hero image, full-bleed vertically, left / info column, right -->
+          <div class="min-h-0 flex gap-4 relative" style="flex:7 1 0%;">
+            <!-- CONFIDENTIAL watermark: sits in FRONT of the photo and the info text, crossing their
+                 shared border on a bold diagonal. It never uses a flat opaque fill — the letterforms are
+                 hollow (transparent fill + thin stroke) and blended (multiply/overlay, per theme) so the
+                 photo's detail and the info text both stay fully readable underneath. -->
+            <div class="watermark" id="watermarkText">CONFIDENTIAL</div>
+
+            <!-- hero screenshot : the undisputed star, shown clean — only the watermark crosses over it -->
+            <div class="cf-image-wrap" id="cfImageWrap" style="flex:0 0 auto; aspect-ratio:4/5; align-self:stretch;">
+              <div class="cf-image-clip">
+                <img id="outImage" src="" alt="" class="hidden">
+                <div id="outImagePlaceholder" class="absolute inset-0 flex items-center justify-center">
+                  <span class="cf-soft text-xs tracking-wide2">NO IMAGE UPLOADED</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- info column : name / race / dc-world / role-job / activity / style, spaced to breathe -->
+            <div class="flex-1 min-w-0 flex flex-col gap-3.5 py-1">
+              <div class="flex-none">
+                <div class="cp-label cf-soft !mb-0.5 !text-[9px]" data-i18n="cardLblName">NAME</div>
+                <div id="outName" class="font-semibold tracking-wide text-sm md:text-base truncate">KOMAKO SERIES</div>
+              </div>
+
+              <div class="flex-none flex flex-col gap-2 text-[10px] md:text-[11px]">
+                <div><div class="cp-label cf-soft !mb-0.5 !text-[9px]" data-i18n="cardLblRace">RACE</div><div id="outRace" class="font-semibold tracking-wide truncate">A</div></div>
+                <div><div class="cp-label cf-soft !mb-0.5 !text-[9px]" data-i18n="cardLblDc">DC</div><div id="outDc" class="font-semibold tracking-wide truncate">DC-1</div></div>
+                <div><div class="cp-label cf-soft !mb-0.5 !text-[9px]" data-i18n="cardLblWorld">WORLD</div><div id="outWorld" class="font-semibold tracking-wide truncate">WORLD-1</div></div>
+                <div><div class="cp-label cf-soft !mb-0.5 !text-[9px]" data-i18n="cardLblRoleJob">ROLE / JOB</div><div id="outRoleJob" class="font-semibold tracking-wide truncate">ROLE-1 / JOB-1</div></div>
+              </div>
+
+              <div class="flex-none cf-line border-t pt-2 grid grid-cols-2 gap-x-3 text-[10px] md:text-[11px]">
+                <div>
+                  <div class="cp-label cf-soft !mb-1 !text-[9px]" data-i18n="cardLblActivity">ACTIVITY</div>
+                  <ul id="outActivity" class="space-y-1"></ul>
+                </div>
+                <div>
+                  <div class="cp-label cf-soft !mb-1 !text-[9px]" data-i18n="cardLblStyle">STYLE</div>
+                  <ul id="outStyle" class="space-y-1"></ul>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- FOOTER AREA (~30%): full-width behavior / remarks, stamp anchored bottom-right like a wax seal -->
+          <div class="min-h-0 cf-line border-t-2 border-[var(--ink)]" style="flex:3 1 0%;">
+            <div class="h-full flex flex-col justify-center gap-1.5 text-[10px] md:text-[11px] leading-snug pt-1.5" style="padding-right:28%;">
+              <div>
+                <div class="cp-label cf-soft !mb-0.5 !text-[9px]" data-i18n="cardLblBehavior">BEHAVIOR PATTERN</div>
+                <p id="outBehavior" class="field-fixed-6">BRIGHT AND UNRESERVED ON FIRST CONTACT.</p>
+              </div>
+              <div>
+                <div class="cp-label cf-soft !mb-0.5 !text-[9px]" data-i18n="cardLblRemarks">REMARKS</div>
+                <p id="outRemarks" class="field-fixed-6">HIGHLY RESPONSIVE TO SCREENSHOTS.</p>
+              </div>
+            </div>
+          </div>
+
+          <!-- copyright: anchored to the card's bottom-left corner, independent of textarea content length -->
+          <div class="text-[8px] tracking-wide2 cf-soft opacity-60" style="position:absolute; left:6%; bottom:1.0%;">©SQUARE ENIX</div>
+
+          <!-- stamp: absolutely anchored to the card's bottom-right corner so its position never
+               shifts as surrounding text grows or shrinks. Theme color / blend-mode rules on
+               .stamp-wrap (and its descendants) are untouched. -->
+          <div class="stamp-wrap" style="position:absolute; right:3.5%; bottom:3.5%; height:19%; width:auto; aspect-ratio:1/1;">
+            <div class="stamp-ring-outer"></div>
+            <div class="stamp-ring-inner"></div>
+            <div class="stamp-content">
+              <div class="stamp-eyebrow" id="stampTopText">✦ CASE FILE ✦</div>
+              <div class="stamp-divider"></div>
+              <div class="stamp-eyebrow" style="opacity:.6">DATE LOGGED</div>
+              <div id="outStampDate" class="stamp-date">21.JUL.2026</div>
+              <div id="outStampFileNo" class="stamp-fileno">FILE NO. 001</div>
+              <div class="stamp-divider"></div>
+              <div class="stamp-eyebrow" style="font-size:.42rem">AUTHENTICATED COPY</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- Image resize/selection UI overlay — deliberately OUTSIDE #caseFile so the card's
+     overflow:hidden (needed to keep the exported card a clean 3:4 crop) can never clip
+     these controls, no matter how far the photo is scaled or dragged. Positioned via JS
+     using getBoundingClientRect(), so it always tracks the frame exactly. Never captured
+     in the downloaded image — hidden right before html2canvas runs. -->
+<div id="imgHandleLayer">
+  <div class="img-selection-box" id="imgSelectionBox"></div>
+  <div class="img-handle" data-handle="nw"></div>
+  <div class="img-handle" data-handle="ne"></div>
+  <div class="img-handle" data-handle="sw"></div>
+  <div class="img-handle" data-handle="se"></div>
+</div>
+
+<script>
+(function(){
+  const $ = (id) => document.getElementById(id);
+
+  let currentLang = 'en';
+  let currentTheme = 'theme-tactical';
+
+  const RACE_LABELS = {
+    en: {
+      'hyur-midlander':'Hyur / Midlander', 'hyur-highlander':'Hyur / Highlander',
+      'elezen-wildwood':'Elezen / Wildwood', 'elezen-duskwight':'Elezen / Duskwight',
+      'lalafell-plainsfolk':'Lalafell / Plainsfolk', 'lalafell-dunesfolk':'Lalafell / Dunesfolk',
+      'miqote-seeker':"Miqo'te / Seeker", 'miqote-keeper':"Miqo'te / Keeper",
+      'roegadyn-seawolf':'Roegadyn / Sea Wolf', 'roegadyn-hellsguard':'Roegadyn / Hellsguard',
+      'aura-raen':'Au Ra / Raen', 'aura-xaela':'Au Ra / Xaela',
+      'hrothgar-helion':'Hrothgar / Helion', 'hrothgar-lost':'Hrothgar / Lost',
+      'viera-rava':'Viera / Rava', 'viera-veena':'Viera / Veena'
+    },
+    ja: {
+      'hyur-midlander':'ヒューラン / ミッドランダー', 'hyur-highlander':'ヒューラン / ハイランダー',
+      'elezen-wildwood':'エレゼン / フォレスター', 'elezen-duskwight':'エレゼン / シェーダー',
+      'lalafell-plainsfolk':'ララフェル / プレーンフォーク', 'lalafell-dunesfolk':'ララフェル / デューンフォーク',
+      'miqote-seeker':'ミコッテ / サンシーカー', 'miqote-keeper':'ミコッテ / ムーンキーパー',
+      'roegadyn-seawolf':'ルガディン / ゼーヴォルフ', 'roegadyn-hellsguard':'ルガディン / ローエンガルデ',
+      'aura-raen':'アウラ / レン', 'aura-xaela':'アウラ / ゼラ',
+      'hrothgar-helion':'ロスガル / ヘリオン', 'hrothgar-lost':'ロスガル / ロスト',
+      'viera-rava':'ヴィエラ / ラヴァ', 'viera-veena':'ヴィエラ / ヴィナ'
+    }
+  };
+  // DC -> WORLD cascade (Japan data centers). DC and WORLD names are identical in both languages.
+  const DC_WORLDS = {
+    'Elemental': ['Aegis','Atomos','Carbuncle','Garuda','Gungnir','Kujata','Tonberry','Typhon'],
+    'Gaia':      ['Alexander','Bahamut','Durandal','Fenrir','Ifrit','Ridill','Tiamat','Ultima'],
+    'Mana':      ['Anima','Asura','Chocobo','Hades','Ixion','Masamune','Pandaemonium','Titan'],
+    'Meteor':    ['Belias','Mandragora','Ramuh','Shinryu','Unicorn','Valefor','Yojimbo','Zeromus']
+  };
+  const ROLE_LABELS = {
+    en: { tank:'Tank', healer:'Healer', dps:'DPS', limited:'Limited Job' },
+    ja: { tank:'タンク', healer:'ヒーラー', dps:'DPS', limited:'リミテッドジョブ' }
+  };
+  // ROLE -> JOB cascade
+  const ROLE_JOBS = {
+    tank:    ['paladin','warrior','darkknight','gunbreaker'],
+    healer:  ['whitemage','scholar','astrologian','sage'],
+    dps:     ['monk','dragoon','ninja','samurai','reaper','viper','bard','machinist','dancer','blackmage','summoner','redmage','pictomancer'],
+    limited: ['bluemage']
+  };
+  const JOB_LABELS = {
+    en: {
+      paladin:'Paladin', warrior:'Warrior', darkknight:'Dark Knight', gunbreaker:'Gunbreaker',
+      whitemage:'White Mage', scholar:'Scholar', astrologian:'Astrologian', sage:'Sage',
+      monk:'Monk', dragoon:'Dragoon', ninja:'Ninja', samurai:'Samurai', reaper:'Reaper', viper:'Viper',
+      bard:'Bard', machinist:'Machinist', dancer:'Dancer', blackmage:'Black Mage', summoner:'Summoner',
+      redmage:'Red Mage', pictomancer:'Pictomancer', bluemage:'Blue Mage'
+    },
+    ja: {
+      paladin:'ナイト', warrior:'戦士', darkknight:'暗黒騎士', gunbreaker:'ガンブレイカー',
+      whitemage:'白魔道士', scholar:'学者', astrologian:'占星術師', sage:'賢者',
+      monk:'モンク', dragoon:'竜騎士', ninja:'忍者', samurai:'侍', reaper:'リーパー', viper:'ヴァイパー',
+      bard:'吟遊詩人', machinist:'機工士', dancer:'踊り子', blackmage:'黒魔道士', summoner:'召喚士',
+      redmage:'赤魔道士', pictomancer:'ピクトマンサー', bluemage:'青魔道士'
+    }
+  };
+  // card title: kept distinct from the header's small "FILE NO." line, which always stays English
+  const TITLE_EN = { 'theme-tactical':'CASE FILE', 'theme-classified':'CASE FILE', 'theme-daily':'GUEST CARD' };
+  const TITLE_JA = { 'theme-tactical':'監視対象報告書', 'theme-classified':'監視対象報告書', 'theme-daily':'GUEST CARD' };
+
+  const I18N = {
+    en: {
+      cpTitle:'CONTROL PANEL', cpSubtitle:'COMPILE SUBJECT DOSSIER', eyebrow:'CLASSIFIED RECORDS DIVISION',
+      lblScreenshot:'SUBJECT SCREENSHOT', btnUpload:'UPLOAD IMAGE', lblName:'CHARACTER NAME', lblRace:'RACE',
+      lblDc:'DC', lblWorld:'WORLD', lblRole:'ROLE', lblJob:'JOB', lblActivity:'ACTIVITY', lblStyle:'STYLE',
+      lblBgPattern:'BACKGROUND PATTERN', lblBehavior:'BEHAVIOR PATTERN', lblRemarks:'REMARKS',
+      lblDateLogged:'DATE LOGGED', lblFileNo:'FILE NO. (001-999)', lblOutputFormat:'OUTPUT FORMAT',
+      cardLblName:'NAME', cardLblRace:'RACE', cardLblDc:'DC', cardLblWorld:'WORLD', cardLblRoleJob:'ROLE / JOB',
+      cardLblActivity:'ACTIVITY', cardLblStyle:'STYLE', cardLblBehavior:'BEHAVIOR PATTERN', cardLblRemarks:'REMARKS',
+      selectPlaceholder:'SELECT', lblOutputSize:'OUTPUT SIZE', sizeLight:'(Light)', sizeStandard:'(Standard)', sizeHigh:'(High-Res)'
+    },
+    ja: {
+      cpTitle:'コントロールパネル', cpSubtitle:'記録データの入力', eyebrow:'機密資料室',
+      lblScreenshot:'スクリーンショット', btnUpload:'画像をアップロード', lblName:'キャラクター名', lblRace:'種族',
+      lblDc:'DC', lblWorld:'ワールド', lblRole:'ロール', lblJob:'ジョブ', lblActivity:'活動内容', lblStyle:'距離感',
+      lblBgPattern:'背景パターン', lblBehavior:'性格・行動傾向', lblRemarks:'備考',
+      lblDateLogged:'記録日', lblFileNo:'管理番号（001〜999）', lblOutputFormat:'出力形式',
+      cardLblName:'名前', cardLblRace:'種族', cardLblDc:'DC', cardLblWorld:'ワールド', cardLblRoleJob:'ロール / ジョブ',
+      cardLblActivity:'活動内容', cardLblStyle:'距離感', cardLblBehavior:'性格・行動傾向', cardLblRemarks:'備考',
+      selectPlaceholder:'選択してください', lblOutputSize:'出力サイズ', sizeLight:'（軽量）', sizeStandard:'（標準）', sizeHigh:'（高精細）'
+    }
+  };
+
+  // Placeholder text for the free-text fields; shown only via the placeholder attribute,
+  // never written into the actual value, so it never appears on the rendered card.
+  const FIELD_PLACEHOLDERS = {
+    en: {
+      behavior: "Example: Enjoys casual interaction, screenshots, and chat.\nHappy to build connections at a relaxed pace.",
+      remarks: "Example: Often responds to glamour, studio, and screenshot-editing topics."
+    },
+    ja: {
+      behavior: "例：気軽な交流、SS撮影、雑談が好きです。\nゆっくり仲良くなれたら嬉しいです。",
+      remarks: "例：ミラプリ、スタジオ、SS加工の話題に反応しやすいです。"
+    }
+  };
+
+  function updateFieldPlaceholders(lang){
+    $('behaviorInput').placeholder = FIELD_PLACEHOLDERS[lang].behavior;
+    $('remarksInput').placeholder = FIELD_PLACEHOLDERS[lang].remarks;
+  }
+
+  // ACTIVITY / STYLE checkbox options: English stays as the original single-line text;
+  // Japanese uses two stacked lines (the "/" in the spec marks the line break, never shown itself).
+  const ACTIVITY_LABELS = {
+    'SNS CONTACT':    { en:'SNS CONTACT',    ja:['SNS交流'] },
+    'IN-GAME PLAY':   { en:'IN-GAME PLAY',   ja:['ゲーム内','交流'] },
+    'PHOTO SESSION':  { en:'PHOTO SESSION',  ja:['SS撮影'] },
+    'PVP':            { en:'PVP',            ja:['PVP'] },
+    'RAID':           { en:'RAID',           ja:['高難易度'] }
+  };
+  const STYLE_LABELS = {
+    'CASUAL PACE':      { en:'CASUAL PACE',      ja:['気軽め'] },
+    'SLOW CONNECTION':  { en:'SLOW CONNECTION',  ja:['ゆっくり'] },
+    'CHAT FRIENDLY':    { en:'CHAT FRIENDLY',    ja:['雑談歓迎'] },
+    'PHOTO FOCUSED':    { en:'PHOTO FOCUSED',    ja:['SS歓迎'] },
+    'LOW FREQUENCY':    { en:'LOW FREQUENCY',    ja:['低頻度OK'] },
+    'PLANNED PLAY':     { en:'PLANNED PLAY',     ja:['予定を','合わせる'] }
+  };
+
+  const checkIconSVG = '<svg class="check-icon" viewBox="0 0 10 10"><path d="M1 5 L4 8 L9 1" stroke="currentColor" stroke-width="1.6" fill="none"/></svg>';
+
+  function pad3(n){
+    n = Math.max(1, Math.min(999, parseInt(n||1,10)));
+    return String(n).padStart(3,'0');
+  }
+
+  function formatStampDate(dateStr){
+    if(!dateStr) return '';
+    const d = new Date(dateStr + 'T00:00:00');
+    const months = ['JAN','FEB','MAR','APR','MAY','JUN','JUL','AUG','SEP','OCT','NOV','DEC'];
+    return String(d.getDate()).padStart(2,'0') + '.' + months[d.getMonth()] + '.' + d.getFullYear();
+  }
+
+  function initDate(){
+    const today = new Date();
+    const iso = today.toISOString().slice(0,10);
+    $('dateInput').value = iso;
+  }
+
+  function syncFileNo(){
+    const val = pad3($('fileNoInput').value);
+    $('outFileNoTop').textContent = val;
+    $('outStampFileNo').textContent = 'FILE NO. ' + val;
+  }
+
+  function syncDate(){
+    const formatted = formatStampDate($('dateInput').value);
+    $('outStampDate').textContent = formatted;
+  }
+
+  const EMPTY_MARK = '—';
+
+  function syncName(){
+    const val = $('nameInput').value.trim();
+    $('outName').textContent = val ? val.toUpperCase() : EMPTY_MARK;
+  }
+
+  function syncRace(){
+    const val = $('raceSelect').value;
+    $('outRace').textContent = val ? ((RACE_LABELS[currentLang] && RACE_LABELS[currentLang][val]) || val) : EMPTY_MARK;
+  }
+
+  function syncDc(){
+    const val = $('dcSelect').value;
+    $('outDc').textContent = val || EMPTY_MARK;
+  }
+
+  function syncWorld(){
+    const val = $('worldSelect').value;
+    $('outWorld').textContent = val || EMPTY_MARK;
+  }
+
+  function placeholderOptionHtml(){
+    return '<option value="" class="select-placeholder">' + I18N[currentLang].selectPlaceholder + '</option>';
+  }
+
+  function populateWorldOptions(dcValue, preserveWorld){
+    const worldSelect = $('worldSelect');
+    const worlds = DC_WORLDS[dcValue] || [];
+    // If the previously selected world isn't valid for the new DC, fall back to the
+    // placeholder rather than auto-picking the first world (confirmed with user).
+    const keep = preserveWorld && worlds.indexOf(preserveWorld) !== -1 ? preserveWorld : '';
+    worldSelect.innerHTML = placeholderOptionHtml() + worlds.map(w => '<option value="'+w+'">'+w+'</option>').join('');
+    worldSelect.value = keep;
+  }
+
+  function syncRoleJob(){
+    const roleVal = $('roleSelect').value;
+    const jobVal = $('jobSelect').value;
+    const roleLabel = roleVal ? ((ROLE_LABELS[currentLang] && ROLE_LABELS[currentLang][roleVal]) || roleVal) : EMPTY_MARK;
+    const jobLabel = jobVal ? ((JOB_LABELS[currentLang] && JOB_LABELS[currentLang][jobVal]) || jobVal) : EMPTY_MARK;
+    $('outRoleJob').textContent = roleLabel + ' / ' + jobLabel;
+  }
+
+  function populateJobOptions(roleValue, preserveJob){
+    const jobSelect = $('jobSelect');
+    const jobs = ROLE_JOBS[roleValue] || [];
+    // Same rule as WORLD: reset to placeholder instead of auto-selecting the first job.
+    const keep = preserveJob && jobs.indexOf(preserveJob) !== -1 ? preserveJob : '';
+    const labels = JOB_LABELS[currentLang] || JOB_LABELS.en;
+    jobSelect.innerHTML = placeholderOptionHtml() + jobs.map(code => '<option value="'+code+'">' + (labels[code] || code) + '</option>').join('');
+    jobSelect.value = keep;
+  }
+
+  function syncBehavior(){
+    const val = $('behaviorInput').value.trim();
+    $('outBehavior').textContent = val ? val.toUpperCase() : EMPTY_MARK;
+  }
+
+  function syncRemarks(){
+    const val = $('remarksInput').value.trim();
+    $('outRemarks').textContent = val ? val.toUpperCase() : EMPTY_MARK;
+  }
+
+  function labelDictFor(groupId){
+    return groupId === 'activityGroup' ? ACTIVITY_LABELS : STYLE_LABELS;
+  }
+
+  function labelHtmlFor(groupId, value){
+    const entry = labelDictFor(groupId)[value];
+    if(!entry) return value;
+    return currentLang === 'ja' ? entry.ja.join('<br>') : entry.en;
+  }
+
+  function renderCheckGroup(groupId, outId){
+    const group = $(groupId);
+    const out = $(outId);
+    out.innerHTML = '';
+    group.querySelectorAll('.chk-btn').forEach(btn => {
+      if(btn.classList.contains('checked')){
+        const li = document.createElement('li');
+        li.className = 'flex items-center gap-1.5';
+        li.innerHTML = checkIconSVG + '<span class="leading-tight">' + labelHtmlFor(groupId, btn.dataset.value) + '</span>';
+        out.appendChild(li);
+      }
+    });
+  }
+
+  function updateCheckboxLabels(){
+    document.querySelectorAll('#activityGroup .chk-btn').forEach(btn => {
+      const span = btn.querySelector('.chk-label');
+      if(span) span.innerHTML = labelHtmlFor('activityGroup', btn.dataset.value);
+    });
+    document.querySelectorAll('#styleGroup .chk-btn').forEach(btn => {
+      const span = btn.querySelector('.chk-label');
+      if(span) span.innerHTML = labelHtmlFor('styleGroup', btn.dataset.value);
+    });
+  }
+
+  function setupCheckGroup(groupId){
+    $(groupId).querySelectorAll('.chk-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        btn.classList.toggle('checked');
+        if(groupId === 'activityGroup') renderCheckGroup('activityGroup','outActivity');
+        if(groupId === 'styleGroup') renderCheckGroup('styleGroup','outStyle');
+      });
+    });
+  }
+
+  function updateBehaviorRemarksLabels(){
+    // Special case: in Japanese, DAILY CHRONICLE swaps these two labels for a more casual pair.
+    // TACTICAL / CLASSIFIED keep the standard Japanese labels; English always keeps the standard labels.
+    const isDailyJa = (currentLang === 'ja' && currentTheme === 'theme-daily');
+    const behaviorText = isDailyJa ? 'ひとこと紹介' : I18N[currentLang].lblBehavior;
+    const remarksText = isDailyJa ? '好きな話題' : I18N[currentLang].lblRemarks;
+    const cardBehaviorText = isDailyJa ? 'ひとこと紹介' : I18N[currentLang].cardLblBehavior;
+    const cardRemarksText = isDailyJa ? '好きな話題' : I18N[currentLang].cardLblRemarks;
+    document.querySelectorAll('[data-i18n="lblBehavior"]').forEach(el => { el.textContent = behaviorText; });
+    document.querySelectorAll('[data-i18n="lblRemarks"]').forEach(el => { el.textContent = remarksText; });
+    document.querySelectorAll('[data-i18n="cardLblBehavior"]').forEach(el => { el.textContent = cardBehaviorText; });
+    document.querySelectorAll('[data-i18n="cardLblRemarks"]').forEach(el => { el.textContent = cardRemarksText; });
+  }
+
+  function updateTitles(){
+    // the small "FILE NO." header line always stays English, tied only to theme
+    $('outTitleShort').textContent = TITLE_EN[currentTheme] || 'CASE FILE';
+    // the big card title translates with the chosen language
+    $('outTitle').textContent = (currentLang === 'ja' ? TITLE_JA[currentTheme] : TITLE_EN[currentTheme]) || 'CASE FILE';
+  }
+
+  function applyLanguage(lang){
+    currentLang = lang;
+    document.querySelectorAll('[data-i18n]').forEach(el => {
+      const key = el.dataset.i18n;
+      if(I18N[lang] && I18N[lang][key] !== undefined) el.textContent = I18N[lang][key];
+    });
+    document.querySelectorAll('#raceSelect option:not(.select-placeholder)').forEach(opt => {
+      opt.textContent = RACE_LABELS[lang][opt.value] || opt.value;
+    });
+    document.querySelectorAll('#roleSelect option:not(.select-placeholder)').forEach(opt => {
+      opt.textContent = ROLE_LABELS[lang][opt.value] || opt.value;
+    });
+    document.querySelectorAll('#jobSelect option:not(.select-placeholder)').forEach(opt => {
+      opt.textContent = JOB_LABELS[lang][opt.value] || opt.value;
+    });
+    // Single pass covers every select's placeholder option (race/dc/role are static,
+    // world/job are regenerated by populate*Options) regardless of current DC/ROLE state.
+    document.querySelectorAll('.select-placeholder').forEach(opt => {
+      opt.textContent = I18N[lang].selectPlaceholder;
+    });
+    updateFieldPlaceholders(lang);
+    updateTitles();
+    updateBehaviorRemarksLabels();
+    updateCheckboxLabels();
+    renderCheckGroup('activityGroup','outActivity');
+    renderCheckGroup('styleGroup','outStyle');
+    syncRace();
+    syncRoleJob();
+  }
+
+  function setupLangGroup(){
+    const group = $('langGroup');
+    group.querySelectorAll('.chk-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        group.querySelectorAll('.chk-btn').forEach(b => b.classList.remove('checked'));
+        btn.classList.add('checked');
+        applyLanguage(btn.dataset.lang);
+      });
+    });
+  }
+
+  function setupBgSwatches(){
+    const swatches = document.querySelectorAll('.bg-swatch');
+    const caseFile = $('caseFile');
+    const watermarkText = {
+      'theme-tactical': 'CONFIDENTIAL',
+      'theme-classified': 'CONFIDENTIAL',
+      'theme-daily': 'FIELD RECORD'
+    };
+    const stampTopText = {
+      'theme-tactical': '✦ CASE FILE ✦',
+      'theme-classified': '✦ CASE FILE ✦',
+      'theme-daily': '✦ GUEST CARD ✦'
+    };
+    swatches.forEach(sw => {
+      sw.addEventListener('click', () => {
+        swatches.forEach(s => s.classList.remove('active'));
+        sw.classList.add('active');
+        caseFile.classList.remove('theme-tactical','theme-classified','theme-daily');
+        caseFile.classList.add(sw.dataset.theme);
+        currentTheme = sw.dataset.theme;
+        // watermark + stamp text are part of the fixed "world" design and always stay English
+        $('watermarkText').textContent = watermarkText[sw.dataset.theme] || 'CONFIDENTIAL';
+        $('stampTopText').textContent = stampTopText[sw.dataset.theme] || '✦ CASE FILE ✦';
+        updateTitles();
+        updateBehaviorRemarksLabels();
+      });
+    });
+  }
+
+  // ---- image transform: the frame is a fixed "peephole" mask; the photo moves and scales
+  // behind it. State is deliberately just x / y / scale — width and height are never stored
+  // or edited independently, so the aspect ratio can never drift out of sync. ----
+  let imgState = null;   // { xFrac, yFrac, scale } — xFrac/yFrac = top-left position as a
+                          // fraction of the frame; scale = multiplier on the base (natural-
+                          // ratio) size below
+  let baseWFrac = 0, baseHFrac = 0; // the photo's size at scale = 1, as a fraction of the
+                          // frame — fixed at upload time, always in the image's natural ratio
+  let imgSelected = false;
+
+  function selectImage(state){
+    imgSelected = state;
+    $('imgHandleLayer').classList.toggle('active', state);
+  }
+
+  // current displayed box, in the frame's own px, purely as a function of imgState + base size
+  function currentBoxPx(wrapW, wrapH){
+    const w = baseWFrac * imgState.scale * wrapW;
+    const h = baseHFrac * imgState.scale * wrapH;
+    return { x: imgState.xFrac * wrapW, y: imgState.yFrac * wrapH, w, h };
+  }
+
+  function applyImageTransform(){
+    if(!imgState) return;
+    const wrap = $('cfImageWrap');
+    const w = wrap.clientWidth, h = wrap.clientHeight;
+    const box = currentBoxPx(w, h);
+    const img = $('outImage');
+    img.style.left = box.x + 'px';
+    img.style.top = box.y + 'px';
+    img.style.width = box.w + 'px';
+    img.style.height = box.h + 'px';
+
+    // translate the frame-local box into viewport coordinates for the fixed overlay —
+    // this is what lets the handles stay visible/grabbable even past the card's own edges
+    const rect = wrap.getBoundingClientRect();
+    const screenX = rect.left + box.x, screenY = rect.top + box.y;
+    const selBox = $('imgSelectionBox');
+    selBox.style.left = screenX + 'px';
+    selBox.style.top = screenY + 'px';
+    selBox.style.width = box.w + 'px';
+    selBox.style.height = box.h + 'px';
+    const corners = { nw:[screenX,screenY], ne:[screenX+box.w,screenY], sw:[screenX,screenY+box.h], se:[screenX+box.w,screenY+box.h] };
+    Object.keys(corners).forEach(key => {
+      const handle = document.querySelector('.img-handle[data-handle="'+key+'"]');
+      if(handle){ handle.style.left = corners[key][0]+'px'; handle.style.top = corners[key][1]+'px'; }
+    });
+  }
+
+  function initImageState(){
+    const wrap = $('cfImageWrap');
+    const w = wrap.clientWidth, h = wrap.clientHeight;
+    const img = $('outImage');
+    const natW = img.naturalWidth || 1, natH = img.naturalHeight || 1;
+    // base size = a "cover"-style fit of the natural-ratio photo over the frame, at scale 1
+    const coverScale = Math.max(w / natW, h / natH);
+    const baseWPx = natW * coverScale, baseHPx = natH * coverScale;
+    baseWFrac = baseWPx / w;
+    baseHFrac = baseHPx / h;
+    // center it, scale 1 — the user can then freely drag/scale from there
+    imgState = { xFrac: (w - baseWPx) / 2 / w, yFrac: (h - baseHPx) / 2 / h, scale: 1 };
+    applyImageTransform();
+  }
+
+  function setupImageInteraction(){
+    const wrap = $('cfImageWrap');
+    const img = $('outImage');
+    const minScale = 0.15; // prevents scaling the photo down to nothing
+
+    img.addEventListener('pointerdown', (e) => {
+      if(!imgState) return;
+      e.preventDefault();
+      selectImage(true);
+      img.setPointerCapture(e.pointerId);
+      const rect = wrap.getBoundingClientRect();
+      const w = rect.width, h = rect.height;
+      const startX = e.clientX, startY = e.clientY;
+      const startState = Object.assign({}, imgState);
+
+      function onMove(ev){
+        if(ev.pointerId !== e.pointerId) return;
+        const dxFrac = (ev.clientX - startX) / w;
+        const dyFrac = (ev.clientY - startY) / h;
+        // pure translation: scale is untouched, so the ratio can't change here
+        imgState = Object.assign({}, startState, { xFrac: startState.xFrac + dxFrac, yFrac: startState.yFrac + dyFrac });
+        applyImageTransform();
+      }
+      function onUp(ev){
+        if(ev.pointerId !== e.pointerId) return;
+        img.removeEventListener('pointermove', onMove);
+        img.removeEventListener('pointerup', onUp);
+        img.removeEventListener('pointercancel', onUp);
+      }
+      img.addEventListener('pointermove', onMove);
+      img.addEventListener('pointerup', onUp);
+      img.addEventListener('pointercancel', onUp);
+    });
+
+    document.querySelectorAll('.img-handle').forEach(handle => {
+      handle.addEventListener('pointerdown', (e) => {
+        if(!imgState) return;
+        e.preventDefault();
+        e.stopPropagation();
+        handle.setPointerCapture(e.pointerId);
+        const type = handle.dataset.handle;
+        const rect = wrap.getBoundingClientRect();
+        const w = rect.width, h = rect.height;
+        const startBox = currentBoxPx(w, h);          // {x,y,w,h} at drag start
+        const baseWPx0 = baseWFrac * w;                // width at scale = 1, for this wrap size
+
+        function onMove(ev){
+          if(ev.pointerId !== e.pointerId) return;
+          const mouseX = ev.clientX - rect.left;
+          // anchor = the corner diagonally opposite the dragged handle; it stays fixed
+          let anchorX, anchorY, newW;
+          if(type === 'se'){ anchorX = startBox.x; anchorY = startBox.y; newW = mouseX - anchorX; }
+          else if(type === 'nw'){ anchorX = startBox.x + startBox.w; anchorY = startBox.y + startBox.h; newW = anchorX - mouseX; }
+          else if(type === 'ne'){ anchorX = startBox.x; anchorY = startBox.y + startBox.h; newW = mouseX - anchorX; }
+          else { anchorX = startBox.x + startBox.w; anchorY = startBox.y; newW = anchorX - mouseX; } // sw
+
+          // the ONLY free variable is scale — height always follows from it via the fixed
+          // natural ratio baked into baseWFrac/baseHFrac, so the photo can never distort
+          let newScale = newW / baseWPx0;
+          newScale = Math.max(minScale, newScale);
+          const newW2 = baseWFrac * newScale * w;
+          const newH2 = baseHFrac * newScale * h;
+
+          let boxX, boxY;
+          if(type === 'se'){ boxX = anchorX; boxY = anchorY; }
+          else if(type === 'nw'){ boxX = anchorX - newW2; boxY = anchorY - newH2; }
+          else if(type === 'ne'){ boxX = anchorX; boxY = anchorY - newH2; }
+          else { boxX = anchorX - newW2; boxY = anchorY; } // sw
+
+          imgState = { xFrac: boxX/w, yFrac: boxY/h, scale: newScale };
+          applyImageTransform();
+        }
+        function onUp(ev){
+          if(ev.pointerId !== e.pointerId) return;
+          handle.removeEventListener('pointermove', onMove);
+          handle.removeEventListener('pointerup', onUp);
+          handle.removeEventListener('pointercancel', onUp);
+        }
+        handle.addEventListener('pointermove', onMove);
+        handle.addEventListener('pointerup', onUp);
+        handle.addEventListener('pointercancel', onUp);
+      });
+    });
+
+    // deselect (hide handles) when tapping/clicking anywhere outside the image frame
+    document.addEventListener('pointerdown', (e) => {
+      if(!wrap.contains(e.target)) selectImage(false);
+    });
+
+    // keep the photo + overlay aligned with the frame if the card's rendered size changes
+    // (responsive width) or the page scrolls (the overlay is viewport-fixed)
+    window.addEventListener('resize', () => { if(imgState) applyImageTransform(); });
+    window.addEventListener('scroll', () => { if(imgState) applyImageTransform(); }, true);
+  }
+
+  function setupImageUpload(){
+    $('outImage').addEventListener('load', initImageState);
+    $('imageInput').addEventListener('change', (e) => {
+      const file = e.target.files[0];
+      if(!file) return;
+      const reader = new FileReader();
+      reader.onload = (ev) => {
+        const src = ev.target.result;
+        $('outImage').src = src;
+        $('outImage').classList.remove('hidden');
+        $('outImagePlaceholder').classList.add('hidden');
+        $('thumbPreview').innerHTML = '<img src="'+src+'" class="w-full h-full object-cover">';
+      };
+      reader.readAsDataURL(file);
+    });
+  }
+
+  function setupFormatGroup(){
+    const group = $('formatGroup');
+    group.querySelectorAll('.chk-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        group.querySelectorAll('.chk-btn').forEach(b => b.classList.remove('checked'));
+        btn.classList.add('checked');
+      });
+    });
+  }
+
+  function getSelectedFormat(){
+    const active = document.querySelector('#formatGroup .chk-btn.checked');
+    return active ? active.dataset.format : 'png';
+  }
+
+  function setupSizeGroup(){
+    const group = $('sizeGroup');
+    group.querySelectorAll('.chk-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        group.querySelectorAll('.chk-btn').forEach(b => b.classList.remove('checked'));
+        btn.classList.add('checked');
+      });
+    });
+  }
+
+  function getSelectedExportWidth(){
+    const active = document.querySelector('#sizeGroup .chk-btn.checked');
+    return active ? parseInt(active.dataset.width, 10) : 2160;
+  }
+
+  function setupDownload(){
+    $('downloadBtn').addEventListener('click', () => {
+      const target = $('caseFile');
+      const wasSelected = imgSelected;
+      selectImage(false);
+      // Preview stays at its on-screen size; scale is derived so the exported canvas
+      // matches the chosen OUTPUT SIZE regardless of the card's current rendered width.
+      const exportWidth = getSelectedExportWidth();
+      const renderScale = exportWidth / target.offsetWidth;
+
+      // Google Fonts are loaded with display=swap, so the browser can still be showing a
+      // fallback font (different metrics) at the instant the button is clicked. Capturing
+      // during that swap is what produced the clipped-bottom text — the overflow:hidden
+      // "truncate" boxes were sized for the fallback font's line box, and the real webfont
+      // then overflows it. Waiting for fonts.ready guarantees the real fonts are painted
+      // before html2canvas takes its snapshot.
+      const fontsReady = (document.fonts && document.fonts.ready) ? document.fonts.ready : Promise.resolve();
+      fontsReady.then(() => {
+        html2canvas(target, { backgroundColor: '#ffffff', scale: renderScale, useCORS: true }).then(canvas => {
+          if(wasSelected) selectImage(true);
+          const format = getSelectedFormat();
+          const fileNo = pad3($('fileNoInput').value);
+          let mime = 'image/png';
+          let ext = 'png';
+          let quality; // undefined = default (used only by jpeg/webp)
+          if(format === 'jpg'){ mime = 'image/jpeg'; ext = 'jpg'; quality = 0.92; }
+          else if(format === 'webp'){ mime = 'image/webp'; ext = 'webp'; quality = 0.92; }
+
+          const link = document.createElement('a');
+          link.download = 'CASE_FILE_' + fileNo + '.' + ext;
+          link.href = quality !== undefined ? canvas.toDataURL(mime, quality) : canvas.toDataURL(mime);
+          link.click();
+        });
+      });
+    });
+  }
+
+  function bindLiveInputs(){
+    $('fileNoInput').addEventListener('input', () => {
+      // keep manual typing within range too
+      let n = parseInt($('fileNoInput').value || '1', 10);
+      if(n > 999) n = 999;
+      if(n < 1) n = 1;
+      $('fileNoInput').value = n;
+      syncFileNo();
+    });
+    $('dateInput').addEventListener('input', syncDate);
+    $('nameInput').addEventListener('input', syncName);
+    $('raceSelect').addEventListener('change', syncRace);
+    $('dcSelect').addEventListener('change', () => {
+      const currentWorld = $('worldSelect').value;
+      populateWorldOptions($('dcSelect').value, currentWorld);
+      syncDc();
+      syncWorld();
+    });
+    $('worldSelect').addEventListener('change', syncWorld);
+    $('roleSelect').addEventListener('change', () => {
+      const currentJob = $('jobSelect').value;
+      populateJobOptions($('roleSelect').value, currentJob);
+      syncRoleJob();
+    });
+    $('jobSelect').addEventListener('change', syncRoleJob);
+    $('behaviorInput').addEventListener('input', syncBehavior);
+    $('remarksInput').addEventListener('input', syncRemarks);
+  }
+
+  function init(){
+    initDate();
+    setupCheckGroup('activityGroup');
+    setupCheckGroup('styleGroup');
+    setupBgSwatches();
+    setupImageUpload();
+    setupImageInteraction();
+    setupFormatGroup();
+    setupSizeGroup();
+    setupLangGroup();
+    setupDownload();
+    bindLiveInputs();
+
+    syncFileNo();
+    syncDate();
+    syncName();
+    syncRace();
+    populateWorldOptions($('dcSelect').value, $('worldSelect').value);
+    syncDc();
+    syncWorld();
+    populateJobOptions($('roleSelect').value, $('jobSelect').value);
+    syncRoleJob();
+    syncBehavior();
+    syncRemarks();
+    renderCheckGroup('activityGroup','outActivity');
+    renderCheckGroup('styleGroup','outStyle');
+    applyLanguage('en');
+  }
+
+  document.addEventListener('DOMContentLoaded', init);
+})();
+</script>
+
+</body>
+</html>
+
     font-family:'JetBrains Mono', monospace;
     color:var(--ink);
   }
