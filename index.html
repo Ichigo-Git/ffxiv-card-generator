@@ -589,14 +589,14 @@
             <div class="flex-1 min-w-0 flex flex-col gap-3.5 py-1">
               <div class="flex-none">
                 <div class="cp-label cf-soft !mb-0.5 !text-[9px]" data-i18n="cardLblName">NAME</div>
-                <div id="outName" class="font-semibold tracking-wide text-sm md:text-base truncate">KOMAKO SERIES</div>
+                <div id="outName" class="font-semibold tracking-wide text-sm md:text-base truncate leading-[1.5] pb-0.5">KOMAKO SERIES</div>
               </div>
 
               <div class="flex-none flex flex-col gap-2 text-[10px] md:text-[11px]">
-                <div><div class="cp-label cf-soft !mb-0.5 !text-[9px]" data-i18n="cardLblRace">RACE</div><div id="outRace" class="font-semibold tracking-wide truncate">A</div></div>
-                <div><div class="cp-label cf-soft !mb-0.5 !text-[9px]" data-i18n="cardLblDc">DC</div><div id="outDc" class="font-semibold tracking-wide truncate">DC-1</div></div>
-                <div><div class="cp-label cf-soft !mb-0.5 !text-[9px]" data-i18n="cardLblWorld">WORLD</div><div id="outWorld" class="font-semibold tracking-wide truncate">WORLD-1</div></div>
-                <div><div class="cp-label cf-soft !mb-0.5 !text-[9px]" data-i18n="cardLblRoleJob">ROLE / JOB</div><div id="outRoleJob" class="font-semibold tracking-wide truncate">ROLE-1 / JOB-1</div></div>
+                <div><div class="cp-label cf-soft !mb-0.5 !text-[9px]" data-i18n="cardLblRace">RACE</div><div id="outRace" class="font-semibold tracking-wide truncate leading-[1.5] pb-0.5">A</div></div>
+                <div><div class="cp-label cf-soft !mb-0.5 !text-[9px]" data-i18n="cardLblDc">DC</div><div id="outDc" class="font-semibold tracking-wide truncate leading-[1.5] pb-0.5">DC-1</div></div>
+                <div><div class="cp-label cf-soft !mb-0.5 !text-[9px]" data-i18n="cardLblWorld">WORLD</div><div id="outWorld" class="font-semibold tracking-wide truncate leading-[1.5] pb-0.5">WORLD-1</div></div>
+                <div><div class="cp-label cf-soft !mb-0.5 !text-[9px]" data-i18n="cardLblRoleJob">ROLE / JOB</div><div id="outRoleJob" class="font-semibold tracking-wide truncate leading-[1.5] pb-0.5">ROLE-1 / JOB-1</div></div>
               </div>
 
               <div class="flex-none cf-line border-t pt-2 grid grid-cols-2 gap-x-3 text-[10px] md:text-[11px]">
@@ -878,12 +878,12 @@
 
   function syncBehavior(){
     const val = $('behaviorInput').value.trim();
-    $('outBehavior').textContent = val ? val.toUpperCase() : EMPTY_MARK;
+    $('outBehavior').textContent = val ? val : EMPTY_MARK;
   }
 
   function syncRemarks(){
     const val = $('remarksInput').value.trim();
-    $('outRemarks').textContent = val ? val.toUpperCase() : EMPTY_MARK;
+    $('outRemarks').textContent = val ? val : EMPTY_MARK;
   }
 
   function labelDictFor(groupId){
@@ -1229,7 +1229,10 @@
   }
 
   function setupDownload(){
+    let downloading = false;
     $('downloadBtn').addEventListener('click', () => {
+      if(downloading) return; // guards against a second click firing before the first finishes
+      downloading = true;
       const target = $('caseFile');
       const wasSelected = imgSelected;
       selectImage(false);
@@ -1237,31 +1240,21 @@
       // matches the chosen OUTPUT SIZE regardless of the card's current rendered width.
       const exportWidth = getSelectedExportWidth();
       const renderScale = exportWidth / target.offsetWidth;
+      html2canvas(target, { backgroundColor: '#ffffff', scale: renderScale, useCORS: true }).then(canvas => {
+        if(wasSelected) selectImage(true);
+        const format = getSelectedFormat();
+        const fileNo = pad3($('fileNoInput').value);
+        let mime = 'image/png';
+        let ext = 'png';
+        let quality; // undefined = default (used only by jpeg/webp)
+        if(format === 'jpg'){ mime = 'image/jpeg'; ext = 'jpg'; quality = 0.92; }
+        else if(format === 'webp'){ mime = 'image/webp'; ext = 'webp'; quality = 0.92; }
 
-      // Google Fonts are loaded with display=swap, so the browser can still be showing a
-      // fallback font (different metrics) at the instant the button is clicked. Capturing
-      // during that swap is what produced the clipped-bottom text — the overflow:hidden
-      // "truncate" boxes were sized for the fallback font's line box, and the real webfont
-      // then overflows it. Waiting for fonts.ready guarantees the real fonts are painted
-      // before html2canvas takes its snapshot.
-      const fontsReady = (document.fonts && document.fonts.ready) ? document.fonts.ready : Promise.resolve();
-      fontsReady.then(() => {
-        html2canvas(target, { backgroundColor: '#ffffff', scale: renderScale, useCORS: true }).then(canvas => {
-          if(wasSelected) selectImage(true);
-          const format = getSelectedFormat();
-          const fileNo = pad3($('fileNoInput').value);
-          let mime = 'image/png';
-          let ext = 'png';
-          let quality; // undefined = default (used only by jpeg/webp)
-          if(format === 'jpg'){ mime = 'image/jpeg'; ext = 'jpg'; quality = 0.92; }
-          else if(format === 'webp'){ mime = 'image/webp'; ext = 'webp'; quality = 0.92; }
-
-          const link = document.createElement('a');
-          link.download = 'CASE_FILE_' + fileNo + '.' + ext;
-          link.href = quality !== undefined ? canvas.toDataURL(mime, quality) : canvas.toDataURL(mime);
-          link.click();
-        });
-      });
+        const link = document.createElement('a');
+        link.download = 'CASE_FILE_' + fileNo + '.' + ext;
+        link.href = quality !== undefined ? canvas.toDataURL(mime, quality) : canvas.toDataURL(mime);
+        link.click();
+      }).finally(() => { downloading = false; });
     });
   }
 
