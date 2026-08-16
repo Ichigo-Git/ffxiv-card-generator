@@ -5,7 +5,17 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>CASE FILE GENERATOR</title>
 <script src="https://cdn.tailwindcss.com"></script>
-<script src="https://cdn.jsdelivr.net/npm/html2canvas-pro@1.5.0/dist/html2canvas-pro.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html-to-image/1.11.13/html-to-image.min.js"></script>
+<!-- TRIAL: swapped from html2canvas-pro to html-to-image for verification (see setupDownload).
+     html-to-image renders via SVG <foreignObject>, i.e. the real browser paints it — so CSS
+     gradients, filter:url() SVG filters, and mix-blend-mode should all render exactly like the
+     live preview, without needing the .exporting raster-swap workaround at all. A prior attempt
+     at this (html-to-image v1.11.13) failed with layout breakage (blank WORLD field, truncated
+     ROLE/JOB, overlapping ACTIVITY/STYLE) and color/glow mismatches — worth retesting now that
+     several unrelated layout bugs (explicit line-heights, etc.) have since been fixed. If it
+     fails again, revert this line to:
+     <script src="https://cdn.jsdelivr.net/npm/html2canvas-pro@1.5.0/dist/html2canvas-pro.min.js"></script>
+     and restore the html2canvas(...) call + .exporting class toggle in setupDownload(). -->
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Oswald:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&family=Stardos+Stencil:wght@400;700&family=Share+Tech+Mono&display=swap" rel="stylesheet">
 <style>
@@ -1321,16 +1331,20 @@
       // matches the chosen OUTPUT SIZE regardless of the card's current rendered width.
       const exportWidth = getSelectedExportWidth();
       const renderScale = exportWidth / target.offsetWidth;
-      // swap live gradient/filter textures for pre-baked raster equivalents
-      // (see the .exporting CSS block above) — html2canvas can't render either.
-      // Wait two animation frames so the browser has actually applied the new
-      // background-image / laid out + decoded the swapped data-URI images
-      // before html2canvas walks the DOM — avoids a race where html2canvas
-      // captures before the class change has been painted.
-      target.classList.add('exporting');
-      requestAnimationFrame(() => requestAnimationFrame(() => {
-      html2canvas(target, { backgroundColor: '#ffffff', scale: renderScale, useCORS: true }).then(canvas => {
-        target.classList.remove('exporting');
+      // TRIAL (html-to-image): foreignObject-based rendering uses the real browser paint
+      // pipeline, so — unlike html2canvas — it should already reproduce the live preview's
+      // gradients/filters/blend-modes correctly. We deliberately do NOT add the .exporting
+      // class here, so this test shows html-to-image's raw, unmodified fidelity against the
+      // live CSS. If backgrounds/stamp grunge/watermark frame all come out right without it,
+      // the whole .exporting raster-swap system (CSS block + JS toggle) can be deleted later.
+      // If html-to-image still can't handle something, re-adding target.classList.add('exporting')
+      // here (and remove in both branches below, as the old html2canvas code did) brings the
+      // raster fallback back for just that trial.
+      htmlToImage.toCanvas(target, {
+        backgroundColor: '#ffffff',
+        pixelRatio: renderScale,
+        cacheBust: true,
+      }).then(canvas => {
         if(wasSelected) selectImage(true);
         const format = getSelectedFormat();
         const fileNo = pad3($('fileNoInput').value);
@@ -1344,8 +1358,10 @@
         link.download = 'CASE_FILE_' + fileNo + '.' + ext;
         link.href = quality !== undefined ? canvas.toDataURL(mime, quality) : canvas.toDataURL(mime);
         link.click();
-      }).finally(() => { target.classList.remove('exporting'); downloading = false; });
-      }));
+      }).catch(err => {
+        console.error('html-to-image export failed:', err);
+        alert('Export failed — see console for details. (html-to-image trial)');
+      }).finally(() => { downloading = false; });
     });
   }
 
