@@ -129,25 +129,31 @@
      radial core that sinks to near-black at the corners for depth */
   #caseFile.theme-tactical{
     background-color:#050b16;
+    /* dot grid widened 3x (was 6px tile, sub-1px dots) — sub-pixel dots at a tiny tile
+       size vanish/shimmer under html-to-image's rasterize-then-rescale export pipeline. */
     background-image:
       radial-gradient(ellipse at center, transparent 38%, rgba(0,0,0,.7) 100%),
       radial-gradient(ellipse at 50% 16%, rgba(75,155,255,.5), rgba(9,20,42,0) 58%),
-      radial-gradient(circle at center, rgba(150,196,255,.4) .5px, transparent 1.1px);
-    background-size:100% 100%, 100% 100%, 6px 6px;
+      radial-gradient(circle at center, rgba(150,196,255,.4) 1.5px, transparent 3.3px);
+    background-size:100% 100%, 100% 100%, 18px 18px;
     color:#dce7fb;
   }
   /* CLASSIFIED TEXTURE — worn vintage dossier paper: fine grain, age stains,
      a warm center glow and a burned-edge vignette. No digital stripes. */
   #caseFile.theme-classified{
     background-color:#ddd2ab;
+    /* grain tile widened 3x (was 2px/3px) — a sub-4px repeating pattern aliases into a
+       visible grid/moiré artifact when html-to-image rasterizes the DOM and rescales it
+       to the export resolution. This width still reads as fine paper grain on screen but
+       survives that rescale cleanly. */
     background-image:
-      repeating-linear-gradient(0deg, rgba(75,58,32,.05) 0px, transparent 1px, transparent 2px),
-      repeating-linear-gradient(90deg, rgba(75,58,32,.04) 0px, transparent 1px, transparent 3px),
+      repeating-linear-gradient(0deg, rgba(75,58,32,.05) 0px, transparent 3px, transparent 6px),
+      repeating-linear-gradient(90deg, rgba(75,58,32,.04) 0px, transparent 3px, transparent 9px),
       radial-gradient(ellipse at 18% 22%, rgba(133,103,55,.18), transparent 50%),
       radial-gradient(ellipse at 82% 74%, rgba(105,78,40,.16), transparent 55%),
       radial-gradient(ellipse at 50% 42%, rgba(255,250,224,.55), rgba(212,197,157,0) 62%),
       radial-gradient(ellipse at center, transparent 52%, rgba(54,39,19,.42) 100%);
-    background-size:3px 3px, 4px 4px, auto, auto, auto, auto;
+    background-size:9px 9px, 12px 12px, auto, auto, auto, auto;
     color:#2a2318;
   }
   /* DAILY CHRONICLE — a soft, everyday-emo diary page: clean white ground with a
@@ -201,9 +207,11 @@
     color:var(--stamp);
     opacity:.4;
     mix-blend-mode:multiply;
-    /* faint ink-roller unevenness: fine low-contrast diagonal banding across the letterforms */
-    -webkit-mask-image: repeating-linear-gradient(115deg, #000 0px, #000 2px, rgba(0,0,0,.7) 2px, rgba(0,0,0,.7) 3px);
-    mask-image: repeating-linear-gradient(115deg, #000 0px, #000 2px, rgba(0,0,0,.7) 2px, rgba(0,0,0,.7) 3px);
+    /* faint ink-roller unevenness: fine low-contrast diagonal banding across the letterforms.
+       Widened 3x (was 2px/3px) to avoid the same rasterize-then-rescale aliasing as the
+       background grain/dot patterns above. */
+    -webkit-mask-image: repeating-linear-gradient(115deg, #000 0px, #000 6px, rgba(0,0,0,.7) 6px, rgba(0,0,0,.7) 9px);
+    mask-image: repeating-linear-gradient(115deg, #000 0px, #000 6px, rgba(0,0,0,.7) 6px, rgba(0,0,0,.7) 9px);
     filter: contrast(1.12) blur(.3px);
   }
   /* flexbox centers the text's line-box, but Stardos Stencil's own internal ascent/
@@ -437,10 +445,14 @@
 </head>
 <body class="min-h-screen">
 
-<!-- distressed-edge filter used by the stamp rings -->
+<!-- distressed-edge filter used by the stamp rings.
+     baseFrequency lowered from 0.85 (was near-per-pixel noise, which aliases into chaotic
+     roughness once html-to-image rasterizes the DOM and rescales it to the export size) to
+     0.18 with a single octave — a coarser, larger-scale wobble that survives that rescale
+     as a clean jittery ink line instead of noise. -->
 <svg width="0" height="0" style="position:absolute;overflow:hidden">
   <filter id="stampGrunge" x="-30%" y="-30%" width="160%" height="160%">
-    <feTurbulence type="fractalNoise" baseFrequency="0.85" numOctaves="2" seed="11" result="noise"/>
+    <feTurbulence type="fractalNoise" baseFrequency="0.18" numOctaves="1" seed="11" result="noise"/>
     <feDisplacementMap in="SourceGraphic" in2="noise" scale="3.2"/>
   </filter>
 </svg>
