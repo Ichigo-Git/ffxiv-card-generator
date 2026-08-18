@@ -176,6 +176,14 @@
     gap:3.2%;
   }
 
+  /* ROLE/JOB single-line auto-fit (see fitRoleJobLine in the script): when a
+     combination is too wide, JS applies scaleX() here — anchoring the scale
+     to the left edge keeps the text starting in the same place instead of
+     shrinking toward the center, which would look like it drifted. */
+  #outRoleJob{
+    transform-origin:left center;
+  }
+
   .watermark{
     position:absolute;
     z-index:30;
@@ -215,6 +223,13 @@
   #watermarkText{
     position:relative;
     top:-.16em;
+    /* letter-spacing (.34em, set on .watermark) reserves trailing space after
+       the last glyph in the text span's own layout box, but doesn't paint
+       anything there — so when flexbox centers that box, the visible ink
+       ends up shifted left of true-center by about half a letter-spacing
+       unit. Nudge it right by that amount to recenter the ink itself,
+       independent of box/font size. */
+    left:.17em;
   }
   /* MILITARY (tactical): stencil-white ink, screened onto the navy/photo like a HUD readout */
   #caseFile.theme-tactical .watermark{
@@ -977,7 +992,25 @@
     const jobVal = $('jobSelect').value;
     const roleLabel = roleVal ? ((ROLE_LABELS[currentLang] && ROLE_LABELS[currentLang][roleVal]) || roleVal) : EMPTY_MARK;
     const jobLabel = jobVal ? ((JOB_LABELS[currentLang] && JOB_LABELS[currentLang][jobVal]) || jobVal) : EMPTY_MARK;
-    $('outRoleJob').textContent = roleLabel + ' / ' + jobLabel;
+    const el = $('outRoleJob');
+    el.textContent = roleLabel + ' / ' + jobLabel;
+    fitRoleJobLine(el);
+  }
+
+  // Generic single-line auto-fit: some ROLE/JOB combinations (e.g. English
+  // "Limited Job / Blue Mage") are wider than the column and were getting
+  // clipped by the truncate ellipsis. Rather than special-casing that one
+  // string, measure the actual rendered width every time this field is set
+  // and — only if it overflows — scale it down just enough to fit on one
+  // line. Short combinations (and the Japanese labels, which already fit)
+  // never trigger this and render exactly as before.
+  function fitRoleJobLine(el){
+    el.style.transform = 'none';
+    const overflow = el.scrollWidth - el.clientWidth;
+    if(overflow > 0){
+      const ratio = Math.max(0.72, el.clientWidth / el.scrollWidth);
+      el.style.transform = 'scaleX(' + ratio.toFixed(3) + ')';
+    }
   }
 
   function populateJobOptions(roleValue, preserveJob){
