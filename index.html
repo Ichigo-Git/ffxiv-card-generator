@@ -216,20 +216,16 @@
     mask-image: repeating-linear-gradient(115deg, #000 0px, #000 6px, rgba(0,0,0,.7) 6px, rgba(0,0,0,.7) 9px);
     filter: contrast(1.12) blur(.3px);
   }
-  /* flexbox centers the text's line-box, but Stardos Stencil's own internal ascent/
-     descent isn't symmetric around it — the visible glyphs still sit slightly low
-     within that centered box. Nudge the glyphs themselves up a hair to compensate;
-     this only affects render position, not layout/frame sizing. */
+  /* Measured directly from a DL'd close-up (pixel comparison of the gap above vs.
+     below the letters): the previous -.16em upward nudge overcorrected — it made
+     the glyphs sit too high, leaving a visibly larger gap below than above. Flipped
+     to a downward shift instead. Horizontal: the gap was slightly larger on the
+     right than the left, so nudged a bit further right too. Both values are
+     empirical (this font has no clean documented metrics) — re-measure if still off. */
   #watermarkText{
     position:relative;
-    top:-.16em;
-    /* letter-spacing (.34em, set on .watermark) reserves trailing space after
-       the last glyph in the text span's own layout box, but doesn't paint
-       anything there — so when flexbox centers that box, the visible ink
-       ends up shifted left of true-center by about half a letter-spacing
-       unit. Nudge it right by that amount to recenter the ink itself,
-       independent of box/font size. */
-    left:.17em;
+    top:.18em;
+    left:.18em;
   }
   /* MILITARY (tactical): stencil-white ink, screened onto the navy/photo like a HUD readout */
   #caseFile.theme-tactical .watermark{
