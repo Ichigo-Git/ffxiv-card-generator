@@ -437,7 +437,8 @@
   .stamp-date{ font-size:2.70968cqw; font-weight:700; letter-spacing:.02em; line-height:1.15; }
   .stamp-fileno{ font-size:1.54839cqw; letter-spacing:.12em; font-weight:600; margin-top:.1rem; }
 
-  .check-icon{ width:11px;height:11px; flex:none; }
+  .check-icon{ width:1em;height:1em; flex:none; }
+  .cf-checklist > li + li{ margin-top:.35em; }
   .line-clamp-3{ display:-webkit-box; -webkit-line-clamp:3; -webkit-box-orient:vertical; overflow:hidden; }
   .line-clamp-2{ display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; }
   .field-fixed-6{
@@ -697,7 +698,7 @@
             </div>
 
             <!-- info column : name / race / dc-world / role-job / activity / style, spaced to breathe -->
-            <div class="flex-1 min-w-0 flex flex-col gap-3.5 py-1">
+            <div class="flex-1 min-w-0 flex flex-col gap-3.5 py-1" id="infoColumn">
               <div class="flex-none">
                 <div class="cp-label cf-soft !mb-0.5" data-i18n="cardLblName" style="font-size:1.45161cqw">NAME</div>
                 <div id="outName" class="font-semibold tracking-wide truncate leading-[1.5] pb-0.5" style="font-size:2.58065cqw">KOMAKO SERIES</div>
@@ -710,18 +711,19 @@
                 <div><div class="cp-label cf-soft !mb-0.5" data-i18n="cardLblRoleJob" style="font-size:1.45161cqw">ROLE / JOB</div><div id="outRoleJob" class="font-semibold tracking-wide truncate leading-[1.5] pb-0.5">ROLE-1 / JOB-1</div></div>
               </div>
 
-              <div class="flex-none cf-line border-t pt-2 grid grid-cols-2 gap-x-3" style="font-size:1.77419cqw">
+              <div class="flex-none cf-line border-t pt-2 grid grid-cols-2 gap-x-3" style="font-size:1.77419cqw" id="activityStyleGrid">
                 <div>
                   <div class="cp-label cf-soft !mb-1" data-i18n="cardLblActivity" style="font-size:1.45161cqw">ACTIVITY</div>
-                  <ul id="outActivity" class="space-y-1"></ul>
+                  <ul id="outActivity" class="cf-checklist"></ul>
                 </div>
                 <div>
                   <div class="cp-label cf-soft !mb-1" data-i18n="cardLblStyle" style="font-size:1.45161cqw">STYLE</div>
-                  <ul id="outStyle" class="space-y-1"></ul>
+                  <ul id="outStyle" class="cf-checklist"></ul>
                 </div>
               </div>
             </div>
           </div>
+
 
           <!-- FOOTER AREA (~30%): full-width behavior / remarks, stamp anchored bottom-right like a wax seal -->
           <div class="min-h-0 cf-line border-t-2 border-[var(--ink)]" style="flex:3 1 0%;">
@@ -1027,6 +1029,37 @@
     return groupId === 'activityGroup' ? ACTIVITY_LABELS : STYLE_LABELS;
   }
 
+  // ACTIVITY/STYLE auto-fit: the info column's height is fixed by the card's
+  // 70/30 split (MAIN AREA has min-h-0, so it never grows), but the number of
+  // checked items is user-controlled and unbounded. With many items checked,
+  // the two-column checklist can need more height than the column has, and —
+  // since nothing in this column clips — the overflow renders past the row's
+  // box and visually collides with the FOOTER AREA below it. Rather than
+  // clipping (which would cut off checked items) this shrinks the checklist's
+  // font-size just enough to fit, leaving NAME/RACE/DC/WORLD/ROLE-JOB and the
+  // rest of the card completely untouched. Same "measure, then only shrink if
+  // needed" approach as fitRoleJobLine above.
+  var ACTIVITY_STYLE_BASE_CQW = 1.77419;
+  var ACTIVITY_STYLE_FLOOR_RATIO = 0.55;
+  function fitActivityStyle(){
+    const info = $('infoColumn');
+    const grid = $('activityStyleGrid');
+    if(!info || !grid) return;
+    grid.style.fontSize = ACTIVITY_STYLE_BASE_CQW + 'cqw';
+    let ratio = 1;
+    for(let i = 0; i < 20; i++){
+      const overflow = info.scrollHeight - info.clientHeight;
+      if(overflow <= 0) break;
+      ratio -= 0.05;
+      if(ratio <= ACTIVITY_STYLE_FLOOR_RATIO){
+        ratio = ACTIVITY_STYLE_FLOOR_RATIO;
+        grid.style.fontSize = (ACTIVITY_STYLE_BASE_CQW * ratio) + 'cqw';
+        break;
+      }
+      grid.style.fontSize = (ACTIVITY_STYLE_BASE_CQW * ratio) + 'cqw';
+    }
+  }
+
   function labelHtmlFor(groupId, value){
     const entry = labelDictFor(groupId)[value];
     if(!entry) return value;
@@ -1040,11 +1073,13 @@
     group.querySelectorAll('.chk-btn').forEach(btn => {
       if(btn.classList.contains('checked')){
         const li = document.createElement('li');
-        li.className = 'flex items-center gap-1.5';
+        li.className = 'flex items-center';
+        li.style.gap = '.4em';
         li.innerHTML = checkIconSVG + '<span class="leading-tight">' + labelHtmlFor(groupId, btn.dataset.value) + '</span>';
         out.appendChild(li);
       }
     });
+    if(groupId === 'activityGroup' || groupId === 'styleGroup') fitActivityStyle();
   }
 
   function updateCheckboxLabels(){
@@ -1314,7 +1349,7 @@
 
     // keep the photo + overlay aligned with the frame if the card's rendered size changes
     // (responsive width) or the page scrolls (the overlay is viewport-fixed)
-    window.addEventListener('resize', () => { if(imgState) applyImageTransform(); });
+    window.addEventListener('resize', () => { if(imgState) applyImageTransform(); fitActivityStyle(); });
     window.addEventListener('scroll', () => { if(imgState) applyImageTransform(); }, true);
   }
 
