@@ -114,6 +114,7 @@
     width:100%;
     max-width:620px;
     margin:0 auto;
+    container-type:inline-size;
   }
   #caseFile{
     position:relative;
@@ -192,7 +193,7 @@
     transform:translate(-50%,-50%) rotate(-14deg);
     font-family:'Stardos Stencil', 'Share Tech Mono', monospace;
     font-weight:700;
-    font-size:1.9rem;
+    font-size:4.90323cqw;
     letter-spacing:.34em;
     text-indent:.34em; /* balances the trailing letter-spacing gap so the block reads centered */
     /* the text is centered via flexbox rather than relying on line-height/font
@@ -431,10 +432,10 @@
     padding:0 12%;
   }
   #caseFile.theme-tactical .stamp-content{ color:#ff8069; }
-  .stamp-eyebrow{ font-size:.5rem; letter-spacing:.22em; opacity:.7; font-weight:600; line-height:1.5; }
+  .stamp-eyebrow{ font-size:1.29032cqw; letter-spacing:.22em; opacity:.7; font-weight:600; line-height:1.5; }
   .stamp-divider{ width:26%; height:1px; background:currentColor; opacity:.55; margin:.25rem 0; }
-  .stamp-date{ font-size:1.05rem; font-weight:700; letter-spacing:.02em; line-height:1.15; }
-  .stamp-fileno{ font-size:.6rem; letter-spacing:.12em; font-weight:600; margin-top:.1rem; }
+  .stamp-date{ font-size:2.70968cqw; font-weight:700; letter-spacing:.02em; line-height:1.15; }
+  .stamp-fileno{ font-size:1.54839cqw; letter-spacing:.12em; font-weight:600; margin-top:.1rem; }
 
   .check-icon{ width:11px;height:11px; flex:none; }
   .line-clamp-3{ display:-webkit-box; -webkit-line-clamp:3; -webkit-box-orient:vertical; overflow:hidden; }
@@ -670,10 +671,10 @@
         <div class="cf-inner">
           <!-- header -->
           <div class="cf-line flex items-end justify-between border-b-2 border-[var(--ink)] pb-2 flex-none">
-            <h2 id="outTitle" class="font-display text-2xl md:text-3xl font-bold tracking-wide2">CASE FILE</h2>
-            <div class="text-right font-display text-xs md:text-sm tracking-wide2 leading-relaxed">
+            <h2 id="outTitle" class="font-display font-bold tracking-wide2" style="font-size:4.83871cqw">CASE FILE</h2>
+            <div class="text-right font-display tracking-wide2 leading-relaxed" style="font-size:2.25806cqw">
               <div><span id="outTitleShort">FILE</span> NO. <span id="outFileNoTop">001</span></div>
-              <div class="cf-soft text-[10px] opacity-70">STATUS: ACTIVE</div>
+              <div class="cf-soft opacity-70" style="font-size:1.61290cqw">STATUS: ACTIVE</div>
             </div>
           </div>
 
@@ -690,7 +691,7 @@
               <div class="cf-image-clip">
                 <img id="outImage" src="" alt="" class="hidden">
                 <div id="outImagePlaceholder" class="absolute inset-0 flex items-center justify-center">
-                  <span class="cf-soft text-xs tracking-wide2">NO IMAGE UPLOADED</span>
+                  <span class="cf-soft tracking-wide2" style="font-size:1.93548cqw">NO IMAGE UPLOADED</span>
                 </div>
               </div>
             </div>
@@ -698,24 +699,24 @@
             <!-- info column : name / race / dc-world / role-job / activity / style, spaced to breathe -->
             <div class="flex-1 min-w-0 flex flex-col gap-3.5 py-1">
               <div class="flex-none">
-                <div class="cp-label cf-soft !mb-0.5 !text-[9px]" data-i18n="cardLblName">NAME</div>
-                <div id="outName" class="font-semibold tracking-wide text-sm md:text-base truncate leading-[1.5] pb-0.5">KOMAKO SERIES</div>
+                <div class="cp-label cf-soft !mb-0.5" data-i18n="cardLblName" style="font-size:1.45161cqw">NAME</div>
+                <div id="outName" class="font-semibold tracking-wide truncate leading-[1.5] pb-0.5" style="font-size:2.58065cqw">KOMAKO SERIES</div>
               </div>
 
-              <div class="flex-none flex flex-col gap-2 text-[10px] md:text-[11px]">
-                <div><div class="cp-label cf-soft !mb-0.5 !text-[9px]" data-i18n="cardLblRace">RACE</div><div id="outRace" class="font-semibold tracking-wide truncate leading-[1.5] pb-0.5">A</div></div>
-                <div><div class="cp-label cf-soft !mb-0.5 !text-[9px]" data-i18n="cardLblDc">DC</div><div id="outDc" class="font-semibold tracking-wide truncate leading-[1.5] pb-0.5">DC-1</div></div>
-                <div><div class="cp-label cf-soft !mb-0.5 !text-[9px]" data-i18n="cardLblWorld">WORLD</div><div id="outWorld" class="font-semibold tracking-wide truncate leading-[1.5] pb-0.5">WORLD-1</div></div>
-                <div><div class="cp-label cf-soft !mb-0.5 !text-[9px]" data-i18n="cardLblRoleJob">ROLE / JOB</div><div id="outRoleJob" class="font-semibold tracking-wide truncate leading-[1.5] pb-0.5">ROLE-1 / JOB-1</div></div>
+              <div class="flex-none flex flex-col gap-2" style="font-size:1.77419cqw">
+                <div><div class="cp-label cf-soft !mb-0.5" data-i18n="cardLblRace" style="font-size:1.45161cqw">RACE</div><div id="outRace" class="font-semibold tracking-wide truncate leading-[1.5] pb-0.5">A</div></div>
+                <div><div class="cp-label cf-soft !mb-0.5" data-i18n="cardLblDc" style="font-size:1.45161cqw">DC</div><div id="outDc" class="font-semibold tracking-wide truncate leading-[1.5] pb-0.5">DC-1</div></div>
+                <div><div class="cp-label cf-soft !mb-0.5" data-i18n="cardLblWorld" style="font-size:1.45161cqw">WORLD</div><div id="outWorld" class="font-semibold tracking-wide truncate leading-[1.5] pb-0.5">WORLD-1</div></div>
+                <div><div class="cp-label cf-soft !mb-0.5" data-i18n="cardLblRoleJob" style="font-size:1.45161cqw">ROLE / JOB</div><div id="outRoleJob" class="font-semibold tracking-wide truncate leading-[1.5] pb-0.5">ROLE-1 / JOB-1</div></div>
               </div>
 
-              <div class="flex-none cf-line border-t pt-2 grid grid-cols-2 gap-x-3 text-[10px] md:text-[11px]">
+              <div class="flex-none cf-line border-t pt-2 grid grid-cols-2 gap-x-3" style="font-size:1.77419cqw">
                 <div>
-                  <div class="cp-label cf-soft !mb-1 !text-[9px]" data-i18n="cardLblActivity">ACTIVITY</div>
+                  <div class="cp-label cf-soft !mb-1" data-i18n="cardLblActivity" style="font-size:1.45161cqw">ACTIVITY</div>
                   <ul id="outActivity" class="space-y-1"></ul>
                 </div>
                 <div>
-                  <div class="cp-label cf-soft !mb-1 !text-[9px]" data-i18n="cardLblStyle">STYLE</div>
+                  <div class="cp-label cf-soft !mb-1" data-i18n="cardLblStyle" style="font-size:1.45161cqw">STYLE</div>
                   <ul id="outStyle" class="space-y-1"></ul>
                 </div>
               </div>
@@ -724,20 +725,20 @@
 
           <!-- FOOTER AREA (~30%): full-width behavior / remarks, stamp anchored bottom-right like a wax seal -->
           <div class="min-h-0 cf-line border-t-2 border-[var(--ink)]" style="flex:3 1 0%;">
-            <div class="h-full flex flex-col justify-center gap-1.5 text-[10px] md:text-[11px] leading-snug pt-1.5" style="padding-right:28%;">
+            <div class="h-full flex flex-col justify-center gap-1.5 leading-snug pt-1.5" style="padding-right:28%; font-size:1.77419cqw">
               <div>
-                <div class="cp-label cf-soft !mb-0.5 !text-[9px]" data-i18n="cardLblBehavior">BEHAVIOR PATTERN</div>
+                <div class="cp-label cf-soft !mb-0.5" data-i18n="cardLblBehavior" style="font-size:1.45161cqw">BEHAVIOR PATTERN</div>
                 <p id="outBehavior" class="field-fixed-6">BRIGHT AND UNRESERVED ON FIRST CONTACT.</p>
               </div>
               <div>
-                <div class="cp-label cf-soft !mb-0.5 !text-[9px]" data-i18n="cardLblRemarks">REMARKS</div>
+                <div class="cp-label cf-soft !mb-0.5" data-i18n="cardLblRemarks" style="font-size:1.45161cqw">REMARKS</div>
                 <p id="outRemarks" class="field-fixed-6">HIGHLY RESPONSIVE TO SCREENSHOTS.</p>
               </div>
             </div>
           </div>
 
           <!-- copyright: anchored to the card's bottom-left corner, independent of textarea content length -->
-          <div class="text-[8px] tracking-wide2 cf-soft opacity-60" style="position:absolute; left:6%; bottom:1.0%;">©SQUARE ENIX</div>
+          <div class="tracking-wide2 cf-soft opacity-60" style="position:absolute; left:6%; bottom:1.0%; font-size:1.29032cqw">©SQUARE ENIX</div>
 
           <!-- stamp: absolutely anchored to the card's bottom-right corner so its position never
                shifts as surrounding text grows or shrinks. Theme color / blend-mode rules on
@@ -752,7 +753,7 @@
               <div id="outStampDate" class="stamp-date">21.JUL.2026</div>
               <div id="outStampFileNo" class="stamp-fileno">FILE NO. 001</div>
               <div class="stamp-divider"></div>
-              <div class="stamp-eyebrow" style="font-size:.42rem">AUTHENTICATED COPY</div>
+              <div class="stamp-eyebrow" style="font-size:1.08387cqw">AUTHENTICATED COPY</div>
             </div>
           </div>
         </div>
