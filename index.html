@@ -698,20 +698,20 @@
             </div>
 
             <!-- info column : name / race / dc-world / role-job / activity / style, spaced to breathe -->
-            <div class="flex-1 min-w-0 flex flex-col gap-3.5 py-1" id="infoColumn">
+            <div class="flex-1 min-w-0 flex flex-col py-1" style="gap:0.875rem" id="infoColumn">
               <div class="flex-none">
                 <div class="cp-label cf-soft !mb-0.5" data-i18n="cardLblName" style="font-size:1.45161cqw">NAME</div>
                 <div id="outName" class="font-semibold tracking-wide truncate leading-[1.5] pb-0.5" style="font-size:2.58065cqw">KOMAKO SERIES</div>
               </div>
 
-              <div class="flex-none flex flex-col gap-2" style="font-size:1.77419cqw">
+              <div class="flex-none flex flex-col" style="font-size:1.77419cqw; gap:0.5rem" id="raceGroup">
                 <div><div class="cp-label cf-soft !mb-0.5" data-i18n="cardLblRace" style="font-size:1.45161cqw">RACE</div><div id="outRace" class="font-semibold tracking-wide truncate leading-[1.5] pb-0.5">A</div></div>
                 <div><div class="cp-label cf-soft !mb-0.5" data-i18n="cardLblDc" style="font-size:1.45161cqw">DC</div><div id="outDc" class="font-semibold tracking-wide truncate leading-[1.5] pb-0.5">DC-1</div></div>
                 <div><div class="cp-label cf-soft !mb-0.5" data-i18n="cardLblWorld" style="font-size:1.45161cqw">WORLD</div><div id="outWorld" class="font-semibold tracking-wide truncate leading-[1.5] pb-0.5">WORLD-1</div></div>
                 <div><div class="cp-label cf-soft !mb-0.5" data-i18n="cardLblRoleJob" style="font-size:1.45161cqw">ROLE / JOB</div><div id="outRoleJob" class="font-semibold tracking-wide truncate leading-[1.5] pb-0.5">ROLE-1 / JOB-1</div></div>
               </div>
 
-              <div class="flex-none cf-line border-t pt-2 grid grid-cols-2 gap-x-3" style="font-size:1.77419cqw" id="activityStyleGrid">
+              <div class="flex-none cf-line border-t grid grid-cols-2 gap-x-3" style="font-size:1.77419cqw; padding-top:0.5rem" id="activityStyleGrid">
                 <div>
                   <div class="cp-label cf-soft !mb-1" data-i18n="cardLblActivity" style="font-size:1.45161cqw">ACTIVITY</div>
                   <ul id="outActivity" class="cf-checklist"></ul>
@@ -1035,17 +1035,34 @@
   // the two-column checklist can need more height than the column has, and —
   // since nothing in this column clips — the overflow renders past the row's
   // box and visually collides with the FOOTER AREA below it. Rather than
-  // clipping (which would cut off checked items) this shrinks the checklist's
-  // font-size just enough to fit, leaving NAME/RACE/DC/WORLD/ROLE-JOB and the
-  // rest of the card completely untouched. Same "measure, then only shrink if
-  // needed" approach as fitRoleJobLine above.
+  // clipping (which would cut off checked items) or only shrinking the
+  // checklist (which reads as oddly denser than the NAME/RACE rows above it),
+  // this scales the whole info column's vertical rhythm together — the gaps
+  // between NAME / RACE-group / ACTIVITY-STYLE, the RACE-group's internal
+  // gap, and the ACTIVITY/STYLE block's own font-size and top padding — all
+  // by the same ratio. NAME/RACE/DC/WORLD/ROLE-JOB font-size is left alone
+  // (they're single lines and shrinking them wouldn't reclaim height), but
+  // the spacing around them tightens along with the checklist, so the column
+  // reads as one consistently-compacted block instead of a loose top and a
+  // cramped bottom. Same "measure, then only shrink if needed" approach as
+  // fitRoleJobLine above.
   var ACTIVITY_STYLE_BASE_CQW = 1.77419;
+  var INFO_COLUMN_BASE_GAP_REM = 0.875;
+  var RACE_GROUP_BASE_GAP_REM = 0.5;
+  var ACTIVITY_STYLE_BASE_PAD_REM = 0.5;
   var ACTIVITY_STYLE_FLOOR_RATIO = 0.55;
   function fitActivityStyle(){
     const info = $('infoColumn');
     const grid = $('activityStyleGrid');
-    if(!info || !grid) return;
-    grid.style.fontSize = ACTIVITY_STYLE_BASE_CQW + 'cqw';
+    const raceGroup = $('raceGroup');
+    if(!info || !grid || !raceGroup) return;
+    function applyRatio(ratio){
+      grid.style.fontSize = (ACTIVITY_STYLE_BASE_CQW * ratio) + 'cqw';
+      grid.style.paddingTop = (ACTIVITY_STYLE_BASE_PAD_REM * ratio) + 'rem';
+      info.style.gap = (INFO_COLUMN_BASE_GAP_REM * ratio) + 'rem';
+      raceGroup.style.gap = (RACE_GROUP_BASE_GAP_REM * ratio) + 'rem';
+    }
+    applyRatio(1);
     let ratio = 1;
     for(let i = 0; i < 20; i++){
       const overflow = info.scrollHeight - info.clientHeight;
@@ -1053,10 +1070,10 @@
       ratio -= 0.05;
       if(ratio <= ACTIVITY_STYLE_FLOOR_RATIO){
         ratio = ACTIVITY_STYLE_FLOOR_RATIO;
-        grid.style.fontSize = (ACTIVITY_STYLE_BASE_CQW * ratio) + 'cqw';
+        applyRatio(ratio);
         break;
       }
-      grid.style.fontSize = (ACTIVITY_STYLE_BASE_CQW * ratio) + 'cqw';
+      applyRatio(ratio);
     }
   }
 
