@@ -653,18 +653,27 @@
               </div>
             </div>
 
-            <!-- info column : name / race / dc-world / role-job / activity / style, spaced to breathe -->
-            <div class="flex-1 min-w-0 flex flex-col gap-3.5 py-1" id="infoColumn">
+            <!-- info column : name / race / dc-world / role-job / activity / style, spaced to breathe.
+                 Vertical rhythm here (gap/margin/padding) is expressed in cqw, not Tailwind's default
+                 rem-based spacing scale (gap-3.5, gap-2, py-1, mb-0.5 etc.) -- rem is a FIXED size tied
+                 to the root font-size, so on a narrow mobile viewport (where the card itself renders
+                 much smaller in px) those fixed gaps end up proportionally much larger relative to the
+                 card than on desktop, stretching this block out of proportion with ACTIVITY/STYLE below
+                 it (whose own font-size is already cqw-driven). cqw scales with the CARD's own width via
+                 the container query on #caseFileOuter, so it stays proportional at any card size instead.
+                 cqw values below were converted 1:1 from the previous rem values at this file's original
+                 ~620px reference card width (e.g. gap-3.5 = 0.875rem = 14px -> 14/620*100 = 2.25806cqw). -->
+            <div class="flex-1 min-w-0 flex flex-col" id="infoColumn" style="gap:2.25806cqw; padding-top:.64516cqw; padding-bottom:.64516cqw;">
               <div class="flex-none">
-                <div class="cp-label cf-soft !mb-0.5" data-i18n="cardLblName" style="font-size:1.45161cqw">NAME</div>
-                <div id="outName" class="font-semibold tracking-wide truncate leading-[1.5] pb-0.5" style="font-size:2.58065cqw">KOMAKO SERIES</div>
+                <div class="cp-label cf-soft" data-i18n="cardLblName" style="font-size:1.45161cqw; margin-bottom:.32258cqw">NAME</div>
+                <div id="outName" class="font-semibold tracking-wide truncate leading-[1.5]" style="font-size:2.58065cqw; padding-bottom:.32258cqw">KOMAKO SERIES</div>
               </div>
 
-              <div class="flex-none flex flex-col gap-2" style="font-size:1.77419cqw">
-                <div><div class="cp-label cf-soft !mb-0.5" data-i18n="cardLblRace" style="font-size:1.45161cqw">RACE</div><div id="outRace" class="font-semibold tracking-wide truncate leading-[1.5] pb-0.5">A</div></div>
-                <div><div class="cp-label cf-soft !mb-0.5" data-i18n="cardLblDc" style="font-size:1.45161cqw">DC</div><div id="outDc" class="font-semibold tracking-wide truncate leading-[1.5] pb-0.5">DC-1</div></div>
-                <div><div class="cp-label cf-soft !mb-0.5" data-i18n="cardLblWorld" style="font-size:1.45161cqw">WORLD</div><div id="outWorld" class="font-semibold tracking-wide truncate leading-[1.5] pb-0.5">WORLD-1</div></div>
-                <div><div class="cp-label cf-soft !mb-0.5" data-i18n="cardLblRoleJob" style="font-size:1.45161cqw">ROLE / JOB</div><div id="outRoleJob" class="font-semibold tracking-wide truncate leading-[1.5] pb-0.5">ROLE-1 / JOB-1</div></div>
+              <div class="flex-none flex flex-col" style="font-size:1.77419cqw; gap:1.29032cqw">
+                <div><div class="cp-label cf-soft" data-i18n="cardLblRace" style="font-size:1.45161cqw; margin-bottom:.32258cqw">RACE</div><div id="outRace" class="font-semibold tracking-wide truncate leading-[1.5]" style="padding-bottom:.32258cqw">A</div></div>
+                <div><div class="cp-label cf-soft" data-i18n="cardLblDc" style="font-size:1.45161cqw; margin-bottom:.32258cqw">DC</div><div id="outDc" class="font-semibold tracking-wide truncate leading-[1.5]" style="padding-bottom:.32258cqw">DC-1</div></div>
+                <div><div class="cp-label cf-soft" data-i18n="cardLblWorld" style="font-size:1.45161cqw; margin-bottom:.32258cqw">WORLD</div><div id="outWorld" class="font-semibold tracking-wide truncate leading-[1.5]" style="padding-bottom:.32258cqw">WORLD-1</div></div>
+                <div><div class="cp-label cf-soft" data-i18n="cardLblRoleJob" style="font-size:1.45161cqw; margin-bottom:.32258cqw">ROLE / JOB</div><div id="outRoleJob" class="font-semibold tracking-wide truncate leading-[1.5]" style="padding-bottom:.32258cqw">ROLE-1 / JOB-1</div></div>
               </div>
 
               <div class="flex-none cf-line border-t pt-2 grid grid-cols-2 gap-x-3" style="font-size:1.77419cqw" id="activityStyleGrid">
