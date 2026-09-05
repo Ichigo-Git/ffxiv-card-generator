@@ -626,8 +626,8 @@
           <div class="cf-line flex items-end justify-between border-b-2 border-[var(--ink)] pb-2 flex-none">
             <h2 id="outTitle" class="font-display font-bold tracking-wide2" style="font-size:4.83871cqw">CASE FILE</h2>
             <div class="text-right font-display tracking-wide2 leading-relaxed" style="font-size:2.25806cqw">
-              <div><span id="outTitleShort">FILE</span> NO. <span id="outFileNoTop">001</span></div>
-              <div class="cf-soft opacity-70" style="font-size:1.61290cqw">STATUS: ACTIVE</div>
+              <div id="outFileNoLine"><span id="outTitleShort">FILE</span> NO. <span id="outFileNoTop">001</span></div>
+              <div id="outStatusText" class="cf-soft opacity-70" style="font-size:1.61290cqw">STATUS: ACTIVE</div>
             </div>
           </div>
 
@@ -692,22 +692,22 @@
           </div>
 
           <!-- copyright: anchored to the card's bottom-left corner, independent of textarea content length -->
-          <div class="tracking-wide2 cf-soft opacity-60" style="position:absolute; left:6%; bottom:1.0%; font-size:1.29032cqw">©SQUARE ENIX</div>
+          <div id="outCopyright" class="tracking-wide2 cf-soft opacity-60" style="position:absolute; left:6%; bottom:1.0%; font-size:1.29032cqw">©SQUARE ENIX</div>
 
           <!-- stamp: absolutely anchored to the card's bottom-right corner so its position never
                shifts as surrounding text grows or shrinks. Theme color / blend-mode rules on
                .stamp-wrap (and its descendants) are untouched. -->
-          <div class="stamp-wrap" style="position:absolute; right:3.5%; bottom:3.5%; height:20.5%; width:auto; aspect-ratio:1/1;">
+          <div id="stampWrap" class="stamp-wrap" style="position:absolute; right:3.5%; bottom:3.5%; height:20.5%; width:auto; aspect-ratio:1/1;">
             <div class="stamp-ring-outer"></div>
             <div class="stamp-ring-inner"></div>
             <div class="stamp-content">
               <div class="stamp-eyebrow" id="stampTopText">✦ CASE FILE ✦</div>
               <div class="stamp-divider"></div>
-              <div class="stamp-eyebrow" style="opacity:.6">DATE LOGGED</div>
+              <div id="stampDateLoggedLabel" class="stamp-eyebrow" style="opacity:.6">DATE LOGGED</div>
               <div id="outStampDate" class="stamp-date">21.JUL.2026</div>
               <div id="outStampFileNo" class="stamp-fileno">FILE NO. 001</div>
               <div class="stamp-divider"></div>
-              <div class="stamp-eyebrow" style="font-size:1.08387cqw">AUTHENTICATED COPY</div>
+              <div id="stampAuthLabel" class="stamp-eyebrow" style="font-size:1.08387cqw">AUTHENTICATED COPY</div>
             </div>
           </div>
         </div>
@@ -1352,6 +1352,451 @@
     return active ? parseInt(active.dataset.width, 10) : 2160;
   }
 
+// ===== Canvas 2D export renderer (tactical theme, v1) =====
+// Strategy: read exact geometry from the live, already-laid-out preview DOM via
+// getBoundingClientRect()/getComputedStyle() (so we never re-implement flexbox/cqw
+// math by hand), but pull actual string content from the same JS state that already
+// feeds the DOM. Backgrounds/photo/stamp rings are drawn with ctx.drawImage from the
+// same data: URLs already used by the CSS/<img>, so no texture regeneration needed.
+// This sidesteps the foreignObject/SVG rasterization pipeline entirely.
+
+function loadImg(src){
+  return new Promise((resolve, reject) => {
+    const im = new Image();
+    im.onload = () => resolve(im);
+    im.onerror = reject;
+    im.src = src;
+  });
+}
+
+function getBgUrl(el){
+  const bg = getComputedStyle(el).backgroundImage;
+  const m = /url\(["']?(.*?)["']?\)/.exec(bg);
+  return m ? m[1] : null;
+}
+
+function measureLineWidth(ctx, text, letterSpacing){
+  if(!text) return 0;
+  let w = 0;
+  for(const ch of text){ w += ctx.measureText(ch).width + letterSpacing; }
+  return w - letterSpacing;
+}
+
+// draws a single line starting at (x,y) baseline, left-aligned, with manual letter spacing
+function drawLineLTR(ctx, text, x, y, letterSpacing){
+  let cx = x;
+  for(const ch of text){
+    ctx.fillText(ch, cx, y);
+    cx += ctx.measureText(ch).width + letterSpacing;
+  }
+}
+
+function truncateToFit(ctx, text, letterSpacing, maxWidth){
+  if(measureLineWidth(ctx, text, letterSpacing) <= maxWidth) return text;
+  let t = text;
+  while(t.length > 0 && measureLineWidth(ctx, t + '\u2026', letterSpacing) > maxWidth){
+    t = t.slice(0, -1);
+  }
+  return t + '\u2026';
+}
+
+function fontStringFrom(cs){
+  return `${cs.fontWeight} ${parseFloat(cs.fontSize)}px ${cs.fontFamily}`;
+}
+
+// Range-based per-character line grouping: returns [{text, top}] in viewport px,
+// capped at maxLines (mirrors -webkit-line-clamp). Handles wrapping + explicit \n
+// (white-space:pre-line) identically to the live browser layout, no need to
+// reimplement text wrapping.
+function getWrappedLines(el, maxLines){
+  const tn = el.firstChild;
+  if(!tn || tn.nodeType !== 3) return [];
+  const fullText = tn.textContent;
+  if(!fullText) return [];
+  const range = document.createRange();
+  const lines = [];
+  // Split on explicit newlines (white-space:pre-line forces a hard break at each \n)
+  // and always start a FRESH line group at the first character of each paragraph,
+  // rather than reading its rect. WebKit has been observed to report the rect of the
+  // character immediately after a literal \n as still belonging to the PREVIOUS
+  // visual line (a Range boundary quirk at forced-break positions) -- trusting that
+  // rect would silently merge two different lines. Splitting on \n first sidesteps
+  // the quirk entirely; soft-wrap detection via rect.top still runs normally within
+  // each paragraph segment, where the quirk was not observed.
+  let offset = 0;
+  const paragraphs = fullText.split('\n');
+  paragraphs.forEach(para => {
+    let curTop = null, curText = '';
+    for(let i = 0; i < para.length; i++){
+      const idx = offset + i;
+      let rect = null;
+      try{
+        // For the first character of a paragraph, WebKit has been observed to
+        // report the Range boundary as still belonging to the PREVIOUS visual
+        // line (the boundary sits right after the explicit \n that was removed
+        // by the split above). Measuring a short lookahead span instead of a
+        // single character sidesteps that quirk; only the position is taken
+        // from it; para[i] alone is still what gets appended to curText below.
+        const endIdx = (i === 0) ? Math.min(idx + 2, offset + para.length) : idx + 1;
+        range.setStart(tn, idx);
+        range.setEnd(tn, endIdx);
+        const rects = range.getClientRects();
+        if(rects.length) rect = Array.from(rects).find(r => r.width > 0) || rects[0]; // skip zero-width caret artifacts at forced line-break boundaries (observed in WebKit)
+      }catch(e){ /* ignore */ }
+      if(!rect){ curText += para[i]; continue; }
+      const top = Math.round(rect.top);
+      if(curTop === null){ curTop = top; curText = para[i]; }
+      else if(Math.abs(top - curTop) <= 2){ curText += para[i]; }
+      else { lines.push({ top: curTop, text: curText }); curTop = top; curText = para[i]; }
+    }
+    if(curTop !== null) lines.push({ top: curTop, text: curText }); // skips unmeasurable empty paragraphs
+    offset += para.length + 1; // +1 for the \n separator itself
+  });
+  return lines.slice(0, maxLines);
+}
+
+// Generalized visual-line splitter for a small inline element whose content is
+// plain text and/or <br> tags (checklist labels: EN can wrap via CSS, JA uses
+// explicit <br>). Returns [{text, top, left}] in viewport px. NOTE: element-level
+// getClientRects() was found NOT to reliably return one rect per visual line for
+// short wrapped inline spans in this layout (returned 1 rect for text that visibly
+// wrapped to 2 lines) -- Range-based per-character grouping (as already used for
+// paragraphs) is the robust approach and is reused here.
+function getLabelVisualLines(span, maxLines){
+  const lines = [];
+  let curTop = null, curLeft = null, curText = '';
+  const range = document.createRange();
+  function flush(){ if(curText !== ''){ lines.push({ top: curTop, left: curLeft, text: curText }); } curText = ''; curTop = null; curLeft = null; }
+  span.childNodes.forEach(node => {
+    if(node.nodeName === 'BR'){ flush(); return; }
+    if(node.nodeType !== 3) return;
+    const text = node.textContent;
+    for(let i = 0; i < text.length; i++){
+      let rect = null;
+      try{
+        range.setStart(node, i);
+        range.setEnd(node, i + 1);
+        const rects = range.getClientRects();
+        if(rects.length) rect = Array.from(rects).find(r => r.width > 0) || rects[0]; // skip zero-width caret artifacts at forced line-break boundaries (observed in WebKit)
+      }catch(e){ /* ignore */ }
+      if(!rect){ curText += text[i]; continue; }
+      const top = Math.round(rect.top);
+      if(curTop === null){ curTop = top; curLeft = rect.left; curText = text[i]; }
+      else if(Math.abs(top - curTop) <= 2){ curText += text[i]; }
+      else { flush(); curTop = top; curLeft = rect.left; curText = text[i]; }
+    }
+  });
+  flush();
+  return lines.slice(0, maxLines || lines.length);
+}
+
+async function renderTacticalCanvas(exportWidth){
+  const $ = (id) => document.getElementById(id);
+  const card = $('caseFile');
+  const cardRect = card.getBoundingClientRect();
+  const scale = exportWidth / cardRect.width;
+  const exportHeight = Math.round(cardRect.height * scale);
+
+  const canvas = document.createElement('canvas');
+  canvas.width = exportWidth;
+  canvas.height = exportHeight;
+  const ctx = canvas.getContext('2d');
+  ctx.scale(scale, scale);
+
+  const W = cardRect.width, H = cardRect.height;
+  const cs = (el) => getComputedStyle(el);
+  const loc = (el) => {
+    const r = el.getBoundingClientRect();
+    return { x: r.left - cardRect.left, y: r.top - cardRect.top, w: r.width, h: r.height };
+  };
+
+  // ---------- BACKGROUND ----------
+  const cardCs = cs(card);
+  ctx.fillStyle = cardCs.backgroundColor;
+  ctx.fillRect(0, 0, W, H);
+  const bgUrl = getBgUrl(card);
+  if(bgUrl){
+    const bgImg = await loadImg(bgUrl);
+    ctx.drawImage(bgImg, 0, 0, W, H); // background-size:100% 100% -> stretch, no crop math needed
+  }
+
+  // ---------- PHOTO ----------
+  const wrapEl = $('cfImageWrap');
+  const wrapRect = loc(wrapEl);
+  ctx.save();
+  ctx.beginPath();
+  ctx.rect(wrapRect.x, wrapRect.y, wrapRect.w, wrapRect.h);
+  ctx.clip();
+  const outImgEl = $('outImage');
+  const hasPhoto = outImgEl.src && outImgEl.src.startsWith('data:');
+  if(hasPhoto){
+    const pr = loc(outImgEl);
+    ctx.drawImage(outImgEl, pr.x, pr.y, pr.w, pr.h);
+  } else {
+    ctx.fillStyle = 'rgba(0,0,0,.12)';
+    ctx.fillRect(wrapRect.x, wrapRect.y, wrapRect.w, wrapRect.h);
+    const phSpan = $('outImagePlaceholder').querySelector('span');
+    if(phSpan){
+      const pcs = cs(phSpan);
+      ctx.font = fontStringFrom(pcs);
+      ctx.fillStyle = pcs.color;
+      const letterSp = parseFloat(pcs.letterSpacing) || 0;
+      const txt = phSpan.textContent;
+      const w = measureLineWidth(ctx, txt, letterSp);
+      const fontPx = parseFloat(pcs.fontSize);
+      const cx = wrapRect.x + wrapRect.w / 2 - w / 2;
+      const cy = wrapRect.y + wrapRect.h / 2 + fontPx * 0.33;
+      drawLineLTR(ctx, txt, cx, cy, letterSp);
+    }
+  }
+  ctx.restore();
+  const wrapCs = cs(wrapEl);
+  ctx.strokeStyle = wrapCs.borderColor;
+  ctx.lineWidth = parseFloat(wrapCs.borderWidth) || 1;
+  ctx.strokeRect(wrapRect.x + 0.5, wrapRect.y + 0.5, wrapRect.w - 1, wrapRect.h - 1);
+
+  // ---------- HEADER: title / file no / status ----------
+  function drawBox(el, text, opts = {}){
+    const rect = loc(el);
+    const c = cs(el);
+    const letterSp = parseFloat(c.letterSpacing) || 0;
+    const fontPx = parseFloat(c.fontSize);
+    ctx.save();
+    ctx.font = fontStringFrom(c);
+    ctx.fillStyle = opts.color || c.color;
+    ctx.globalAlpha = opts.opacity != null ? opts.opacity : (parseFloat(c.opacity) || 1);
+    let txt = text;
+    let sx = 1;
+    if(opts.ellipsis){
+      txt = truncateToFit(ctx, txt, letterSp, rect.w);
+    } else if(opts.fitScaleX){
+      const w = measureLineWidth(ctx, txt, letterSp);
+      if(w > rect.w) sx = Math.max(0.72, rect.w / w);
+    }
+    const y = rect.y + rect.h / 2 + fontPx * 0.33;
+    let x = rect.x;
+    if(opts.align === 'center') {
+      const w = measureLineWidth(ctx, txt, letterSp);
+      x = rect.x + rect.w / 2 - (w * sx) / 2;
+    } else if(opts.align === 'right') {
+      const w = measureLineWidth(ctx, txt, letterSp);
+      x = rect.x + rect.w - w * sx;
+    }
+    if(sx !== 1){
+      ctx.translate(x, 0); ctx.scale(sx, 1); ctx.translate(-x, 0);
+    }
+    drawLineLTR(ctx, txt, x, y, letterSp);
+    ctx.restore();
+    return rect;
+  }
+
+  drawBox($('outTitle'), $('outTitle').textContent);
+  const fileNoLine = $('outFileNoLine');
+  if(fileNoLine) drawBox(fileNoLine, fileNoLine.textContent.replace(/\s+/g, ' ').trim());
+  const statusEl = $('outStatusText');
+  if(statusEl) drawBox(statusEl, statusEl.textContent);
+
+  // ---------- WATERMARK ----------
+  {
+    const wm = document.querySelector('#caseFile .watermark');
+    const wmSpan = $('watermarkText');
+    if(wm && wmSpan){
+      const wr = loc(wm);
+      const wcs = cs(wm);
+      const spanCs = cs(wmSpan);
+      const fontPx = parseFloat(wcs.fontSize);
+      const letterSp = parseFloat(wcs.letterSpacing) || 0;
+      const cx = wr.x + wr.w / 2, cy = wr.y + wr.h / 2;
+      ctx.save();
+      ctx.translate(cx, cy);
+      ctx.rotate(-14 * Math.PI / 180);
+      ctx.globalCompositeOperation = wcs.mixBlendMode === 'overlay' ? 'overlay' : 'multiply';
+      ctx.globalAlpha = parseFloat(wcs.opacity) || 1;
+      ctx.filter = 'contrast(1.12) blur(0.3px)';
+      ctx.font = `${wcs.fontWeight} ${fontPx}px ${wcs.fontFamily}`;
+      ctx.fillStyle = wcs.color;
+      const txt = wmSpan.textContent;
+      const w = measureLineWidth(ctx, txt, letterSp);
+      // small empirical nudge matching #watermarkText{top:.15em;left:.18em}
+      drawLineLTR(ctx, txt, -w / 2 + fontPx * 0.18, fontPx * 0.15 + fontPx * 0.33, letterSp);
+      ctx.restore();
+    }
+  }
+
+  // ---------- INFO COLUMN: labels + values ----------
+  const labels = Array.from(document.querySelectorAll('#caseFile .cp-label'));
+  // order: NAME, RACE, DC, WORLD, ROLE/JOB, ACTIVITY, STYLE, BEHAVIOR PATTERN, REMARKS
+  labels.forEach(lb => drawBox(lb, lb.textContent));
+
+  drawBox($('outName'), $('outName').textContent, { ellipsis: true });
+  drawBox($('outRace'), $('outRace').textContent, { ellipsis: true });
+  drawBox($('outDc'), $('outDc').textContent, { ellipsis: true });
+  drawBox($('outWorld'), $('outWorld').textContent, { ellipsis: true });
+  drawBox($('outRoleJob'), $('outRoleJob').textContent, { fitScaleX: true });
+
+  // checklist columns
+  ['outActivity', 'outStyle'].forEach(ulId => {
+    const ul = $(ulId);
+    if(!ul) return;
+    Array.from(ul.children).forEach(li => {
+      const svg = li.querySelector('svg');
+      const span = li.querySelector('span');
+      if(!span) return;
+      const spanCs = cs(span);
+      const letterSp = parseFloat(spanCs.letterSpacing) || 0;
+      ctx.save();
+      ctx.font = fontStringFrom(spanCs);
+      ctx.fillStyle = spanCs.color;
+      ctx.globalAlpha = parseFloat(spanCs.opacity) || 1;
+      const fontPx = parseFloat(spanCs.fontSize);
+      const visLines = getLabelVisualLines(span, 4);
+      visLines.forEach(line => {
+        const rx = line.left - cardRect.left, ry = line.top - cardRect.top;
+        const y = ry + fontPx * 0.85; // baseline approximation from line-box top
+        drawLineLTR(ctx, line.text, rx, y, letterSp);
+      });
+      ctx.restore();
+      // checkmark icon
+      if(svg){
+        const sr = loc(svg);
+        const svgCs = cs(li); // color: currentColor on li (cf-checklist inherits ink)
+        ctx.save();
+        ctx.strokeStyle = getComputedStyle(li).color;
+        ctx.lineWidth = Math.max(1, sr.w * 0.16);
+        ctx.lineCap = 'round';
+        ctx.lineJoin = 'round';
+        ctx.beginPath();
+        // path "M1 5 L4 8 L9 1" in a 10x10 viewBox -> scale into sr box
+        const sx = sr.w / 10, sy = sr.h / 10;
+        ctx.moveTo(sr.x + 1 * sx, sr.y + 5 * sy);
+        ctx.lineTo(sr.x + 4 * sx, sr.y + 8 * sy);
+        ctx.lineTo(sr.x + 9 * sx, sr.y + 1 * sy);
+        ctx.stroke();
+        ctx.restore();
+      }
+    });
+  });
+
+  // ---------- FOOTER: behavior / remarks paragraphs ----------
+  ['outBehavior', 'outRemarks'].forEach(id => {
+    const el = $(id);
+    if(!el) return;
+    const c = cs(el);
+    const letterSp = parseFloat(c.letterSpacing) || 0;
+    const fontPx = parseFloat(c.fontSize);
+    const rect = loc(el);
+    ctx.save();
+    ctx.font = fontStringFrom(c);
+    ctx.fillStyle = c.color;
+    const lines = getWrappedLines(el, 6);
+    lines.forEach(line => {
+      const ly = (line.top - cardRect.top) + fontPx * 0.85;
+      drawLineLTR(ctx, line.text, rect.x, ly, letterSp);
+    });
+    ctx.restore();
+  });
+
+  // ---------- COPYRIGHT ----------
+  const copy = $('outCopyright');
+  if(copy) drawBox(copy, copy.textContent);
+
+  // ---------- STAMP ----------
+  {
+    const stampWrap = $('stampWrap');
+    if(stampWrap){
+      const boxSize = 0.205 * H;
+      const boxRight = W * 0.965, boxBottom = H * 0.965;
+      const boxX = boxRight - boxSize, boxY = boxBottom - boxSize;
+      const cx = boxX + boxSize / 2, cy = boxY + boxSize / 2;
+
+      const outerUrl = getBgUrl(document.querySelector('#caseFile .stamp-ring-outer'));
+      const innerUrl = getBgUrl(document.querySelector('#caseFile .stamp-ring-inner'));
+      const [outerImg, innerImg] = await Promise.all([
+        outerUrl ? loadImg(outerUrl) : null,
+        innerUrl ? loadImg(innerUrl) : null,
+      ]);
+
+      ctx.save();
+      ctx.translate(cx, cy);
+      ctx.rotate(-7 * Math.PI / 180);
+      ctx.translate(-boxSize / 2, -boxSize / 2); // now local box is (0,0)-(boxSize,boxSize)
+      ctx.globalCompositeOperation = 'screen';
+
+      if(outerImg) ctx.drawImage(outerImg, 0, 0, boxSize, boxSize);
+      if(innerImg){
+        const inset = boxSize * 0.095;
+        ctx.globalAlpha = 0.8;
+        ctx.drawImage(innerImg, inset, inset, boxSize - inset * 2, boxSize - inset * 2);
+        ctx.globalAlpha = 1;
+      }
+
+      // content text, color #ff8069 (tactical stamp-content override)
+      ctx.fillStyle = '#ff8069';
+      const W100 = W; // cqw basis = card width
+      const cqw = (v) => v * W100 / 100;
+
+      const eyebrow1 = $('stampTopText');
+      const dateLabel = $('stampDateLoggedLabel');
+      const dateVal = $('outStampDate');
+      const fileNoVal = $('outStampFileNo');
+      const authLabel = $('stampAuthLabel');
+
+      const items = [];
+      if(eyebrow1) items.push({ el: eyebrow1, fontSize: cqw(1.29032), lh: 1.5, letterSp: 0.22, opacity: 0.7 });
+      items.push({ divider: true, h: 1 + 8 });
+      if(dateLabel) items.push({ el: dateLabel, fontSize: cqw(1.29032), lh: 1.5, letterSp: 0.22, opacity: 0.6 });
+      if(dateVal) items.push({ el: dateVal, fontSize: cqw(2.70968), lh: 1.15, letterSp: 0.02, opacity: 1 });
+      if(fileNoVal) items.push({ el: fileNoVal, fontSize: cqw(1.54839), lh: 1.2, letterSp: 0.12, opacity: 1, marginTop: 1.6 });
+      items.push({ divider: true, h: 1 + 8 });
+      if(authLabel) items.push({ el: authLabel, fontSize: cqw(1.08387), lh: 1.5, letterSp: 0.22, opacity: 0.7 });
+
+      let totalH = 0;
+      items.forEach(it => { totalH += it.divider ? it.h : (it.fontSize * it.lh + (it.marginTop || 0)); });
+      let curY = (boxSize - totalH) / 2;
+      items.forEach(it => {
+        if(it.divider){
+          ctx.save();
+          ctx.globalAlpha = 0.55;
+          ctx.fillRect(boxSize / 2 - boxSize * 0.13, curY + 4, boxSize * 0.26, 1);
+          ctx.restore();
+          curY += it.h;
+          return;
+        }
+        curY += (it.marginTop || 0);
+        const text = it.el.textContent;
+        ctx.save();
+        ctx.globalAlpha = it.opacity;
+        ctx.font = `600 ${it.fontSize}px 'JetBrains Mono', monospace`;
+        const letterSpPx = it.letterSp * it.fontSize;
+        const w = measureLineWidth(ctx, text, letterSpPx);
+        const baseline = curY + it.fontSize * it.lh * 0.72;
+        drawLineLTR(ctx, text, boxSize / 2 - w / 2, baseline, letterSpPx);
+        ctx.restore();
+        curY += it.fontSize * it.lh;
+      });
+
+      ctx.restore();
+    }
+  }
+
+  return canvas;
+}
+
+  function finalizeDownload(canvas){
+    const format = getSelectedFormat();
+    const fileNo = pad3($('fileNoInput').value);
+    let mime = 'image/png';
+    let ext = 'png';
+    let quality; // undefined = default (used only by jpeg/webp)
+    if(format === 'jpg'){ mime = 'image/jpeg'; ext = 'jpg'; quality = 0.92; }
+    else if(format === 'webp'){ mime = 'image/webp'; ext = 'webp'; quality = 0.92; }
+
+    const link = document.createElement('a');
+    link.download = 'CASE_FILE_' + fileNo + '.' + ext;
+    link.href = quality !== undefined ? canvas.toDataURL(mime, quality) : canvas.toDataURL(mime);
+    link.click();
+  }
+
   function setupDownload(){
     let downloading = false;
     $('downloadBtn').addEventListener('click', () => {
@@ -1360,9 +1805,29 @@
       const target = $('caseFile');
       const wasSelected = imgSelected;
       selectImage(false);
+      const exportWidth = getSelectedExportWidth();
+
+      // Canvas 2D direct-draw path (see renderTacticalCanvas above): reads the live
+      // preview DOM's geometry/computed style and repaints it directly, bypassing the
+      // foreignObject/SVG rasterization pipeline entirely (html2canvas -> html2canvas-pro
+      // -> html-to-image all hit mobile-Safari-specific bugs in that pipeline; see
+      // project_handoff.md). Rolling out theme-by-theme: tactical first, verified against
+      // both Chromium and WebKit via Playwright. classified/daily still use the
+      // html-to-image path below until they get the same treatment.
+      if(currentTheme === 'theme-tactical'){
+        renderTacticalCanvas(exportWidth).then(canvas => {
+          if(wasSelected) selectImage(true);
+          finalizeDownload(canvas);
+        }).catch(err => {
+          if(wasSelected) selectImage(true);
+          console.error('Canvas export failed:', err);
+          alert('Export failed — see console for details. (canvas export)');
+        }).finally(() => { downloading = false; });
+        return;
+      }
+
       // Preview stays at its on-screen size; scale is derived so the exported canvas
       // matches the chosen OUTPUT SIZE regardless of the card's current rendered width.
-      const exportWidth = getSelectedExportWidth();
       const renderScale = exportWidth / target.offsetWidth;
       // TRIAL (html-to-image): foreignObject-based rendering uses the real browser paint
       // pipeline, so — unlike html2canvas — it should already reproduce the live preview's
@@ -1392,18 +1857,7 @@
         filter: (node) => !(node.id === 'outImage' && (!node.src || !node.src.startsWith('data:'))),
       }).then(canvas => {
         if(wasSelected) selectImage(true);
-        const format = getSelectedFormat();
-        const fileNo = pad3($('fileNoInput').value);
-        let mime = 'image/png';
-        let ext = 'png';
-        let quality; // undefined = default (used only by jpeg/webp)
-        if(format === 'jpg'){ mime = 'image/jpeg'; ext = 'jpg'; quality = 0.92; }
-        else if(format === 'webp'){ mime = 'image/webp'; ext = 'webp'; quality = 0.92; }
-
-        const link = document.createElement('a');
-        link.download = 'CASE_FILE_' + fileNo + '.' + ext;
-        link.href = quality !== undefined ? canvas.toDataURL(mime, quality) : canvas.toDataURL(mime);
-        link.click();
+        finalizeDownload(canvas);
       }).catch(err => {
         console.error('html-to-image export failed:', err);
         alert('Export failed — see console for details. (html-to-image trial)');
