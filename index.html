@@ -391,6 +391,15 @@
 
   .check-icon{ width:1em;height:1em; flex:none; }
   .cf-checklist > li + li{ margin-top:.35em; }
+  /* Each item gets a fixed 2-line-tall slot (icon+text vertically centered inside
+     it via the li's own flex items-center) regardless of whether its own label
+     wraps to 1 or 2 lines. ACTIVITY and STYLE are independent lists, so without
+     this a short label next to a wrapped one shifts every row after it out of
+     alignment between the two columns -- purely cosmetic misalignment, but it
+     reads as sloppy since the two columns are presented as a matched pair. em is
+     relative to this element's own (cqw-driven, auto-shrunk by fitActivityStyle)
+     font-size, so this stays proportionally correct at any card size or item count. */
+  .cf-checklist > li{ min-height:2.5em; }
   .line-clamp-3{ display:-webkit-box; -webkit-line-clamp:3; -webkit-box-orient:vertical; overflow:hidden; }
   .line-clamp-2{ display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; }
   .field-fixed-6{
