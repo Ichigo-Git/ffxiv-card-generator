@@ -592,7 +592,11 @@
         </div>
         <div>
           <label class="cp-label" data-i18n="lblFileNo">FILE NO. (001-999)</label>
-          <input id="fileNoInput" type="number" min="1" max="999" class="cp-input" value="1">
+          <div class="flex items-stretch gap-1">
+            <button type="button" id="fileNoDown" aria-label="Decrease file number" class="cp-input shrink-0 font-bold" style="width:2.4rem; text-align:center; cursor:pointer;">−</button>
+            <input id="fileNoInput" type="number" min="1" max="999" inputmode="numeric" class="cp-input text-center" value="1" style="min-width:0;">
+            <button type="button" id="fileNoUp" aria-label="Increase file number" class="cp-input shrink-0 font-bold" style="width:2.4rem; text-align:center; cursor:pointer;">+</button>
+          </div>
         </div>
       </div>
 
@@ -2032,6 +2036,23 @@ async function renderTacticalCanvas(exportWidth){
       $('fileNoInput').value = n;
       syncFileNo();
     });
+    // Native <input type=number> spin arrows are desktop-only -- mobile Safari/
+    // Chrome render no spinner at all, leaving typing as the only way to change
+    // the value there (and typing into an already-focused field appends rather
+    // than replaces, unless the user manually selects the existing digit first).
+    // These buttons give mobile users an explicit, visible way to step the value,
+    // matching what the desktop arrows already do.
+    function stepFileNo(delta){
+      let n = parseInt($('fileNoInput').value || '1', 10);
+      if(isNaN(n)) n = 1;
+      n += delta;
+      if(n > 999) n = 999;
+      if(n < 1) n = 1;
+      $('fileNoInput').value = n;
+      syncFileNo();
+    }
+    $('fileNoUp').addEventListener('click', () => stepFileNo(1));
+    $('fileNoDown').addEventListener('click', () => stepFileNo(-1));
     $('dateInput').addEventListener('input', syncDate);
     $('nameInput').addEventListener('input', syncName);
     $('raceSelect').addEventListener('change', syncRace);
