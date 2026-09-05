@@ -623,7 +623,7 @@
 
         <div class="cf-inner">
           <!-- header -->
-          <div class="cf-line flex items-end justify-between border-b-2 border-[var(--ink)] pb-2 flex-none">
+          <div id="cfHeaderRow" class="cf-line flex items-end justify-between border-b-2 border-[var(--ink)] pb-2 flex-none">
             <h2 id="outTitle" class="font-display font-bold tracking-wide2" style="font-size:4.83871cqw">CASE FILE</h2>
             <div class="text-right font-display tracking-wide2 leading-relaxed" style="font-size:2.25806cqw">
               <div id="outFileNoLine"><span id="outTitleShort">FILE</span> NO. <span id="outFileNoTop">001</span></div>
@@ -678,7 +678,7 @@
 
 
           <!-- FOOTER AREA (~30%): full-width behavior / remarks, stamp anchored bottom-right like a wax seal -->
-          <div class="min-h-0 cf-line border-t-2 border-[var(--ink)]" style="flex:3 1 0%;">
+          <div id="cfFooterArea" class="min-h-0 cf-line border-t-2 border-[var(--ink)]" style="flex:3 1 0%;">
             <div class="h-full flex flex-col justify-center gap-1.5 leading-snug pt-1.5" style="padding-right:28%; font-size:1.77419cqw">
               <div>
                 <div class="cp-label cf-soft !mb-0.5" data-i18n="cardLblBehavior" style="font-size:1.45161cqw">BEHAVIOR PATTERN</div>
@@ -1585,7 +1585,14 @@ async function renderTacticalCanvas(exportWidth){
     let txt = text;
     let sx = 1;
     if(opts.ellipsis){
-      txt = truncateToFit(ctx, txt, letterSp, rect.w);
+      // Trust the DOM's own overflow verdict first: canvas font-fallback resolution
+      // for CJK glyphs (this font stack has no CJK member, so both DOM and canvas
+      // fall back to a platform default) has been observed to measure slightly
+      // wider than the live DOM layout on at least one real device, causing text
+      // that fits fine on-screen to get needlessly truncated here. Only fall back
+      // to canvas-based truncation if the DOM itself actually overflows.
+      const domOverflows = el.scrollWidth > el.clientWidth + 1;
+      if(domOverflows) txt = truncateToFit(ctx, txt, letterSp, rect.w);
     } else if(opts.fitScaleX){
       const w = measureLineWidth(ctx, txt, letterSp);
       if(w > rect.w) sx = Math.max(0.72, rect.w / w);
@@ -1608,6 +1615,26 @@ async function renderTacticalCanvas(exportWidth){
   }
 
   drawBox($('outTitle'), $('outTitle').textContent);
+  // divider lines (.cf-line borders) -- drawn after drawBox is defined, before the
+  // header text so a border underneath text still reads correctly (z-order barely
+  // matters here since the two never overlap, but this keeps declaration order tidy)
+  function drawHorizontalBorder(el, side, widthPx){
+    if(!el) return;
+    const r = loc(el);
+    const c = cs(el);
+    const y = side === 'top' ? r.y : r.y + r.h;
+    ctx.save();
+    ctx.strokeStyle = c.borderTopColor || c.borderColor;
+    ctx.lineWidth = widthPx;
+    ctx.beginPath();
+    ctx.moveTo(r.x, y);
+    ctx.lineTo(r.x + r.w, y);
+    ctx.stroke();
+    ctx.restore();
+  }
+  drawHorizontalBorder($('cfHeaderRow'), 'bottom', 2);
+  drawHorizontalBorder($('activityStyleGrid'), 'top', 1);
+  drawHorizontalBorder($('cfFooterArea'), 'top', 2);
   const fileNoLine = $('outFileNoLine');
   if(fileNoLine) drawBox(fileNoLine, fileNoLine.textContent.replace(/\s+/g, ' ').trim());
   const statusEl = $('outStatusText');
