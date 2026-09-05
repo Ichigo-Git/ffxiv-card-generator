@@ -979,6 +979,12 @@
     el.style.overflow = 'visible';
     el.style.textOverflow = 'clip';
     el.style.transform = 'none';
+    // Scale from the LEFT edge, not the CSS default (center): these are all
+    // left-aligned fields, and transform-origin:center visibly shifts the text
+    // rightward off the label's left edge as soon as any squeeze is applied
+    // (even a small one) -- looking like it had suddenly become centered.
+    // transform-origin:left keeps the left edge fixed regardless of ratio.
+    el.style.transformOrigin = 'left';
     const overflow = el.scrollWidth - el.clientWidth;
     if(overflow > 0){
       const ratio = Math.max(0.72, el.clientWidth / el.scrollWidth);
@@ -1664,20 +1670,10 @@ async function renderTacticalCanvas(exportWidth){
       // for the same issue found elsewhere), so the decision of *whether* and *how
       // much* to squeeze must not depend on canvas measureText at all here.
       //
-      // CSS transform:scaleX() on this element uses the default center
-      // transform-origin, which does NOT move the element's own center point --
-      // only its edges move inward. getBoundingClientRect() already reflects
-      // that (possibly already-transformed) box, so rect's center is reliable
-      // as the true center regardless of whatever scale is currently applied.
-      // el.clientWidth is a layout property and is NOT affected by the
-      // transform, so it always gives the genuine pre-transform column width.
-      // From that we can reconstruct the untransformed left edge, then apply
-      // our own matching scale around the same center -- reproducing the CSS
-      // result exactly instead of layering a second, independently-derived
-      // squeeze on top of a rect that may already be transformed.
-      const cx = rect.x + rect.w / 2;
-      const originalW = el.clientWidth;
-      x = cx - originalW / 2;
+      // fitSingleLine() sets transform-origin:left on this element, so unlike a
+      // default center-origin scale, the LEFT edge never moves regardless of the
+      // scale ratio -- rect.x is therefore already the correct draw position with
+      // no reconstruction needed, whether or not a transform is currently applied.
       if(el.scrollWidth > el.clientWidth){
         sx = Math.max(0.72, el.clientWidth / el.scrollWidth);
       }
