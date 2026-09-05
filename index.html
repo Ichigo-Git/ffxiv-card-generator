@@ -1417,6 +1417,43 @@ function truncateToFit(ctx, text, letterSpacing, maxWidth){
   return t + '\u2026';
 }
 
+// DOM Range-based equivalent of CSS text-overflow:ellipsis for a single-line
+// (white-space:nowrap) element. Needed because canvas ctx.measureText() for CJK
+// text has been observed to measure noticeably wider than the *actual* on-screen
+// WebKit rendering for the same font-family string (this font stack has no CJK
+// member, so both DOM and canvas fall back to a platform default -- but each
+// resolves/measures that fallback slightly differently). Using the real Range
+// rect (the browser's own text layout) for both the overflow check AND the
+// character cutoff point avoids depending on canvas/DOM font-metric parity at all.
+function getDomTruncatedText(el, ctx){
+  const tn = el.firstChild;
+  if(!tn || tn.nodeType !== 3) return el.textContent;
+  const text = tn.textContent;
+  if(!text) return text;
+  const maxWidthPx = el.clientWidth;
+  const range = document.createRange();
+  function widthOfPrefix(n){
+    if(n <= 0) return 0;
+    range.setStart(tn, 0);
+    range.setEnd(tn, Math.min(n, text.length));
+    return range.getBoundingClientRect().width;
+  }
+  const fullWidth = widthOfPrefix(text.length);
+  if(fullWidth <= maxWidthPx + 1) return text; // fits -- no truncation, matches live DOM exactly
+  // Reserve room for the ellipsis mark via canvas measureText -- unlike the CJK
+  // string above, '…' is a simple common punctuation glyph present uniformly
+  // across platform fallback fonts, so canvas/DOM measurement parity is not a
+  // concern here the way it is for CJK text.
+  const ellipsisWidth = ctx.measureText('\u2026').width;
+  const budget = maxWidthPx - ellipsisWidth;
+  let lo = 0, hi = text.length;
+  while(lo < hi){
+    const mid = Math.ceil((lo + hi) / 2);
+    if(widthOfPrefix(mid) <= budget) lo = mid; else hi = mid - 1;
+  }
+  return text.slice(0, lo) + '\u2026';
+}
+
 function fontStringFrom(cs){
   return `${cs.fontWeight} ${parseFloat(cs.fontSize)}px ${cs.fontFamily}`;
 }
@@ -1585,14 +1622,9 @@ async function renderTacticalCanvas(exportWidth){
     let txt = text;
     let sx = 1;
     if(opts.ellipsis){
-      // Trust the DOM's own overflow verdict first: canvas font-fallback resolution
-      // for CJK glyphs (this font stack has no CJK member, so both DOM and canvas
-      // fall back to a platform default) has been observed to measure slightly
-      // wider than the live DOM layout on at least one real device, causing text
-      // that fits fine on-screen to get needlessly truncated here. Only fall back
-      // to canvas-based truncation if the DOM itself actually overflows.
-      const domOverflows = el.scrollWidth > el.clientWidth + 1;
-      if(domOverflows) txt = truncateToFit(ctx, txt, letterSp, rect.w);
+      // See getDomTruncatedText for why this uses Range-measured DOM widths
+      // instead of canvas measureText/scrollWidth for the overflow decision.
+      txt = getDomTruncatedText(el, ctx);
     } else if(opts.fitScaleX){
       const w = measureLineWidth(ctx, txt, letterSp);
       if(w > rect.w) sx = Math.max(0.72, rect.w / w);
@@ -1640,34 +1672,13 @@ async function renderTacticalCanvas(exportWidth){
   const statusEl = $('outStatusText');
   if(statusEl) drawBox(statusEl, statusEl.textContent);
 
-  // ---------- WATERMARK ----------
-  {
-    const wm = document.querySelector('#caseFile .watermark');
-    const wmSpan = $('watermarkText');
-    if(wm && wmSpan){
-      const wr = loc(wm);
-      const wcs = cs(wm);
-      const spanCs = cs(wmSpan);
-      const fontPx = parseFloat(wcs.fontSize);
-      const letterSp = parseFloat(wcs.letterSpacing) || 0;
-      const cx = wr.x + wr.w / 2, cy = wr.y + wr.h / 2;
-      ctx.save();
-      ctx.translate(cx, cy);
-      ctx.rotate(-14 * Math.PI / 180);
-      ctx.globalCompositeOperation = wcs.mixBlendMode === 'overlay' ? 'overlay' : 'multiply';
-      ctx.globalAlpha = parseFloat(wcs.opacity) || 1;
-      ctx.filter = 'contrast(1.12) blur(0.3px)';
-      ctx.font = `${wcs.fontWeight} ${fontPx}px ${wcs.fontFamily}`;
-      ctx.fillStyle = wcs.color;
-      const txt = wmSpan.textContent;
-      const w = measureLineWidth(ctx, txt, letterSp);
-      // small empirical nudge matching #watermarkText{top:.15em;left:.18em}
-      drawLineLTR(ctx, txt, -w / 2 + fontPx * 0.18, fontPx * 0.15 + fontPx * 0.33, letterSp);
-      ctx.restore();
-    }
-  }
-
   // ---------- INFO COLUMN: labels + values ----------
+  // NOTE: drawn BEFORE the watermark below, even though it appears after it in this
+  // file's original section order. In the live DOM the watermark has z-index:30, so
+  // it paints ON TOP of both the photo and this info text, and its mix-blend-mode
+  // then blends against that text too (readable-through, not simply erased by it).
+  // Drawing order here must match that real stacking order or the watermark's blend
+  // ends up computed against the wrong backdrop wherever it overlaps this column.
   const labels = Array.from(document.querySelectorAll('#caseFile .cp-label'));
   // order: NAME, RACE, DC, WORLD, ROLE/JOB, ACTIVITY, STYLE, BEHAVIOR PATTERN, REMARKS
   labels.forEach(lb => drawBox(lb, lb.textContent));
@@ -1720,6 +1731,35 @@ async function renderTacticalCanvas(exportWidth){
       }
     });
   });
+
+  // ---------- WATERMARK ----------
+  // Drawn here (after photo + info column text, before footer/stamp which it never
+  // spatially overlaps) to match the live DOM's z-index:30 stacking -- see note above
+  // the INFO COLUMN section for why draw order matters for this element's blend mode.
+  {
+    const wm = document.querySelector('#caseFile .watermark');
+    const wmSpan = $('watermarkText');
+    if(wm && wmSpan){
+      const wr = loc(wm);
+      const wcs = cs(wm);
+      const fontPx = parseFloat(wcs.fontSize);
+      const letterSp = parseFloat(wcs.letterSpacing) || 0;
+      const cx = wr.x + wr.w / 2, cy = wr.y + wr.h / 2;
+      ctx.save();
+      ctx.translate(cx, cy);
+      ctx.rotate(-14 * Math.PI / 180);
+      ctx.globalCompositeOperation = wcs.mixBlendMode === 'overlay' ? 'overlay' : 'multiply';
+      ctx.globalAlpha = parseFloat(wcs.opacity) || 1;
+      ctx.filter = 'contrast(1.12) blur(0.3px)';
+      ctx.font = `${wcs.fontWeight} ${fontPx}px ${wcs.fontFamily}`;
+      ctx.fillStyle = wcs.color;
+      const txt = wmSpan.textContent;
+      const w = measureLineWidth(ctx, txt, letterSp);
+      // small empirical nudge matching #watermarkText{top:.15em;left:.18em}
+      drawLineLTR(ctx, txt, -w / 2 + fontPx * 0.18, fontPx * 0.15 + fontPx * 0.33, letterSp);
+      ctx.restore();
+    }
+  }
 
   // ---------- FOOTER: behavior / remarks paragraphs ----------
   ['outBehavior', 'outRemarks'].forEach(id => {
