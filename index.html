@@ -892,21 +892,25 @@
   function syncName(){
     const val = $('nameInput').value.trim();
     $('outName').textContent = val ? val : EMPTY_MARK;
+    fitSingleLine($('outName'));
   }
 
   function syncRace(){
     const val = $('raceSelect').value;
     $('outRace').textContent = val ? ((RACE_LABELS[currentLang] && RACE_LABELS[currentLang][val]) || val) : EMPTY_MARK;
+    fitSingleLine($('outRace'));
   }
 
   function syncDc(){
     const val = $('dcSelect').value;
     $('outDc').textContent = val || EMPTY_MARK;
+    fitSingleLine($('outDc'));
   }
 
   function syncWorld(){
     const val = $('worldSelect').value;
     $('outWorld').textContent = val || EMPTY_MARK;
+    fitSingleLine($('outWorld'));
   }
 
   function placeholderOptionHtml(){
@@ -933,14 +937,17 @@
     fitRoleJobLine(el);
   }
 
-  // Generic single-line auto-fit: some ROLE/JOB combinations (e.g. English
-  // "Limited Job / Blue Mage") are wider than the column and were getting
-  // clipped by the truncate ellipsis. Rather than special-casing that one
-  // string, measure the actual rendered width every time this field is set
-  // and — only if it overflows — scale it down just enough to fit on one
-  // line. Short combinations (and the Japanese labels, which already fit)
-  // never trigger this and render exactly as before.
-  function fitRoleJobLine(el){
+  // Generic single-line auto-fit: some field values (e.g. English "Limited Job /
+  // Blue Mage", or Japanese race/clan combinations like "ルガディン / ローエンガルデ")
+  // are wider than their column and were getting clipped by the truncate ellipsis.
+  // Rather than special-casing strings, measure the actual rendered width every
+  // time a field is set and — only if it overflows — scale it down just enough to
+  // fit on one line. Short values never trigger this and render exactly as before.
+  // Deliberately horizontal-only (scaleX): NAME/RACE/DC/WORLD/ROLE-JOB sit directly
+  // above the already-cramped ACTIVITY/STYLE checklist on mobile widths, so nothing
+  // here may grow taller (wrapping to 2 lines, or a bigger line-height) without
+  // pushing that section further down.
+  function fitSingleLine(el){
     // text-overflow:ellipsis (from the Tailwind `truncate` class) decides what
     // to clip using the element's own un-transformed layout width — a later
     // CSS transform:scaleX() can't undo that clip, it only shrinks whatever
@@ -956,6 +963,7 @@
       el.style.transform = 'scaleX(' + ratio.toFixed(3) + ')';
     }
   }
+  var fitRoleJobLine = fitSingleLine; // old name kept as an alias -- see call site below
 
   function populateJobOptions(roleValue, preserveJob){
     const jobSelect = $('jobSelect');
@@ -1621,16 +1629,38 @@ async function renderTacticalCanvas(exportWidth){
     ctx.globalAlpha = opts.opacity != null ? opts.opacity : (parseFloat(c.opacity) || 1);
     let txt = text;
     let sx = 1;
+    let x = rect.x;
     if(opts.ellipsis){
       // See getDomTruncatedText for why this uses Range-measured DOM widths
       // instead of canvas measureText/scrollWidth for the overflow decision.
       txt = getDomTruncatedText(el, ctx);
     } else if(opts.fitScaleX){
-      const w = measureLineWidth(ctx, txt, letterSp);
-      if(w > rect.w) sx = Math.max(0.72, rect.w / w);
+      // Mirrors fitSingleLine() in the main script exactly, using the SAME real
+      // DOM layout measurements (scrollWidth/clientWidth) rather than canvas
+      // measureText -- canvas font-fallback resolution for CJK text has been
+      // measured to disagree with actual on-screen widths (see getDomTruncatedText
+      // for the same issue found elsewhere), so the decision of *whether* and *how
+      // much* to squeeze must not depend on canvas measureText at all here.
+      //
+      // CSS transform:scaleX() on this element uses the default center
+      // transform-origin, which does NOT move the element's own center point --
+      // only its edges move inward. getBoundingClientRect() already reflects
+      // that (possibly already-transformed) box, so rect's center is reliable
+      // as the true center regardless of whatever scale is currently applied.
+      // el.clientWidth is a layout property and is NOT affected by the
+      // transform, so it always gives the genuine pre-transform column width.
+      // From that we can reconstruct the untransformed left edge, then apply
+      // our own matching scale around the same center -- reproducing the CSS
+      // result exactly instead of layering a second, independently-derived
+      // squeeze on top of a rect that may already be transformed.
+      const cx = rect.x + rect.w / 2;
+      const originalW = el.clientWidth;
+      x = cx - originalW / 2;
+      if(el.scrollWidth > el.clientWidth){
+        sx = Math.max(0.72, el.clientWidth / el.scrollWidth);
+      }
     }
     const y = rect.y + rect.h / 2 + fontPx * 0.33;
-    let x = rect.x;
     if(opts.align === 'center') {
       const w = measureLineWidth(ctx, txt, letterSp);
       x = rect.x + rect.w / 2 - (w * sx) / 2;
@@ -1683,10 +1713,10 @@ async function renderTacticalCanvas(exportWidth){
   // order: NAME, RACE, DC, WORLD, ROLE/JOB, ACTIVITY, STYLE, BEHAVIOR PATTERN, REMARKS
   labels.forEach(lb => drawBox(lb, lb.textContent));
 
-  drawBox($('outName'), $('outName').textContent, { ellipsis: true });
-  drawBox($('outRace'), $('outRace').textContent, { ellipsis: true });
-  drawBox($('outDc'), $('outDc').textContent, { ellipsis: true });
-  drawBox($('outWorld'), $('outWorld').textContent, { ellipsis: true });
+  drawBox($('outName'), $('outName').textContent, { fitScaleX: true });
+  drawBox($('outRace'), $('outRace').textContent, { fitScaleX: true });
+  drawBox($('outDc'), $('outDc').textContent, { fitScaleX: true });
+  drawBox($('outWorld'), $('outWorld').textContent, { fitScaleX: true });
   drawBox($('outRoleJob'), $('outRoleJob').textContent, { fitScaleX: true });
 
   // checklist columns
@@ -1748,7 +1778,15 @@ async function renderTacticalCanvas(exportWidth){
       ctx.save();
       ctx.translate(cx, cy);
       ctx.rotate(-14 * Math.PI / 180);
-      ctx.globalCompositeOperation = wcs.mixBlendMode === 'overlay' ? 'overlay' : 'multiply';
+      // NOTE: Canvas globalCompositeOperation='overlay' was measured to render
+      // noticeably DARKER here than the live CSS mix-blend-mode:overlay does over
+      // the same dark background (pixel-sampled: ~35/255 vs ~150/255 peak
+      // brightness at an identical crop) -- the two are spec'd to be the same math,
+      // but apparently aren't producing matching results in this engine/scenario.
+      // 'hard-light' was empirically the closest visual/brightness match against a
+      // reference screenshot, so it's used as a deliberate approximation for the
+      // tactical (white-on-navy) theme rather than a literal blend-mode translation.
+      ctx.globalCompositeOperation = wcs.mixBlendMode === 'overlay' ? 'hard-light' : 'multiply';
       ctx.globalAlpha = parseFloat(wcs.opacity) || 1;
       ctx.filter = 'contrast(1.12) blur(0.3px)';
       ctx.font = `${wcs.fontWeight} ${fontPx}px ${wcs.fontFamily}`;
