@@ -1424,8 +1424,61 @@ function loadImg(src, timeoutMs){
 
 function getBgUrl(el){
   const bg = getComputedStyle(el).backgroundImage;
-  const m = /url\(["']?(.*?)["']?\)/.exec(bg);
-  return m ? m[1] : null;
+  // #caseFile transitions its background over .25s on theme switch, which
+  // computed style reports mid-transition as cross-fade(url(OLD), url(NEW), pct)
+  // rather than a plain url(...). Taking the LAST url() match (not the first)
+  // reliably gets the target/new theme's image whether or not a transition is
+  // still in flight -- matches every other case too, since a plain "url(...)"
+  // with no cross-fade wrapper only ever has one match anyway.
+  const matches = [...bg.matchAll(/url\(["']?(.*?)["']?\)/g)];
+  return matches.length ? matches[matches.length - 1][1] : null;
+}
+
+// Splits on top-level commas only (ignores commas nested inside rgba()/hsla()
+// parens), so a color-stop list like "rgba(0,0,0,.5) 10%, red 50%" splits into
+// exactly 2 stops rather than being shredded at every internal comma.
+function splitTopLevel(str){
+  const parts = [];
+  let depth = 0, cur = '';
+  for(const ch of str){
+    if(ch === '(') depth++;
+    if(ch === ')') depth--;
+    if(ch === ',' && depth === 0){ parts.push(cur.trim()); cur = ''; }
+    else cur += ch;
+  }
+  if(cur.trim()) parts.push(cur.trim());
+  return parts;
+}
+
+// Minimal linear-gradient(<angle>deg, <color> <stop>%, ...) parser/renderer --
+// covers what this project's themes actually use (angle + percentage stops with
+// rgba()/hex colors). Gradient-line geometry follows the standard CSS algorithm:
+// the line through the box center is long enough that the box's far corners
+// project exactly onto its ends.
+function drawCssLinearGradient(ctx, cssValue, x, y, w, h){
+  const inner = cssValue.slice(cssValue.indexOf('(') + 1, cssValue.lastIndexOf(')'));
+  const parts = splitTopLevel(inner);
+  let angleDeg = 180; // CSS default direction is "to bottom" = 180deg
+  let stopParts = parts;
+  const angleMatch = /(-?[\d.]+)deg/.exec(parts[0]);
+  if(angleMatch){ angleDeg = parseFloat(angleMatch[1]); stopParts = parts.slice(1); }
+  const stops = stopParts.map((p, i) => {
+    const m = /^(.*?)(?:\s+(-?[\d.]+)%)?$/.exec(p.trim());
+    const color = m[1].trim();
+    const pct = m[2] != null ? parseFloat(m[2]) / 100 : (i / Math.max(1, stopParts.length - 1));
+    return { color, pct };
+  });
+  const angleRad = angleDeg * Math.PI / 180;
+  const halfW = w / 2, halfH = h / 2;
+  const ux = Math.sin(angleRad), uy = -Math.cos(angleRad);
+  const len = Math.abs(halfW * ux) + Math.abs(halfH * uy);
+  const cx = x + w / 2, cy = y + h / 2;
+  const grad = ctx.createLinearGradient(cx - ux * len, cy - uy * len, cx + ux * len, cy + uy * len);
+  stops.forEach(s => grad.addColorStop(Math.min(1, Math.max(0, s.pct)), s.color));
+  ctx.save();
+  ctx.fillStyle = grad;
+  ctx.fillRect(x, y, w, h);
+  ctx.restore();
 }
 
 function measureLineWidth(ctx, text, letterSpacing){
@@ -1580,7 +1633,7 @@ function getLabelVisualLines(span, maxLines){
   return lines.slice(0, maxLines || lines.length);
 }
 
-async function renderTacticalCanvas(exportWidth){
+async function renderCardCanvas(exportWidth){
   const $ = (id) => document.getElementById(id);
   const card = $('caseFile');
   const cardRect = card.getBoundingClientRect();
@@ -1601,13 +1654,20 @@ async function renderTacticalCanvas(exportWidth){
   };
 
   // ---------- BACKGROUND ----------
+  // Handles both a single background image (tactical/classified) and a plain CSS
+  // linear-gradient (daily has no raster background at all, just a gradient wash).
   const cardCs = cs(card);
   ctx.fillStyle = cardCs.backgroundColor;
   ctx.fillRect(0, 0, W, H);
-  const bgUrl = getBgUrl(card);
-  if(bgUrl){
-    const bgImg = await loadImg(bgUrl);
-    ctx.drawImage(bgImg, 0, 0, W, H); // background-size:100% 100% -> stretch, no crop math needed
+  const bgImageCss = cardCs.backgroundImage;
+  if(bgImageCss && bgImageCss.includes('url(')){
+    const bgUrl = getBgUrl(card);
+    if(bgUrl){
+      const bgImg = await loadImg(bgUrl);
+      ctx.drawImage(bgImg, 0, 0, W, H); // background-size:100% 100% -> stretch, no crop math needed
+    }
+  } else if(bgImageCss && bgImageCss.includes('linear-gradient')){
+    drawCssLinearGradient(ctx, bgImageCss, 0, 0, W, H);
   }
 
   // ---------- PHOTO ----------
@@ -1793,6 +1853,12 @@ async function renderTacticalCanvas(exportWidth){
       const fontPx = parseFloat(wcs.fontSize);
       const letterSp = parseFloat(wcs.letterSpacing) || 0;
       const cx = wr.x + wr.w / 2, cy = wr.y + wr.h / 2;
+      // classified adds a pre-rendered "frame" texture as this same element's own
+      // background-image (see the CSS comment above .theme-classified .watermark
+      // for why it's baked into this element rather than a separate rotated child).
+      // tactical/daily have no background-image here, so this is a no-op for them.
+      const wmBgUrl = getBgUrl(wm);
+      const wmBgImg = wmBgUrl ? await loadImg(wmBgUrl) : null;
       ctx.save();
       ctx.translate(cx, cy);
       ctx.rotate(-14 * Math.PI / 180);
@@ -1804,9 +1870,17 @@ async function renderTacticalCanvas(exportWidth){
       // 'hard-light' was empirically the closest visual/brightness match against a
       // reference screenshot, so it's used as a deliberate approximation for the
       // tactical (white-on-navy) theme rather than a literal blend-mode translation.
+      // classified/daily use 'multiply', which (being a much simpler, non-branching
+      // formula than overlay) has not shown the same mismatch in testing.
       ctx.globalCompositeOperation = wcs.mixBlendMode === 'overlay' ? 'hard-light' : 'multiply';
       ctx.globalAlpha = parseFloat(wcs.opacity) || 1;
       ctx.filter = 'contrast(1.12) blur(0.3px)';
+      // offsetWidth/offsetHeight (not wr.w/wr.h, which is the ROTATED bounding
+      // box -- AABB of a rotated rect is larger than the rect itself) give the
+      // element's true pre-rotation layout size, matching what the CSS
+      // background-image actually renders at before the rotate() is applied.
+      const wmTrueW = wm.offsetWidth, wmTrueH = wm.offsetHeight;
+      if(wmBgImg) ctx.drawImage(wmBgImg, -wmTrueW / 2, -wmTrueH / 2, wmTrueW, wmTrueH);
       ctx.font = `${wcs.fontWeight} ${fontPx}px ${wcs.fontFamily}`;
       ctx.fillStyle = wcs.color;
       const txt = wmSpan.textContent;
@@ -1856,11 +1930,18 @@ async function renderTacticalCanvas(exportWidth){
         innerUrl ? loadImg(innerUrl) : null,
       ]);
 
+      const stampWrapCs = cs(stampWrap);
+      const stampContentEl = document.querySelector('#caseFile .stamp-content');
+      const stampColor = stampContentEl ? cs(stampContentEl).color : stampWrapCs.color;
+      const stampFontFamily = $('outStampDate') ? cs($('outStampDate')).fontFamily : "'JetBrains Mono', monospace";
+
       ctx.save();
       ctx.translate(cx, cy);
       ctx.rotate(-7 * Math.PI / 180);
       ctx.translate(-boxSize / 2, -boxSize / 2); // now local box is (0,0)-(boxSize,boxSize)
-      ctx.globalCompositeOperation = 'screen';
+      // Base .stamp-wrap is mix-blend-mode:multiply; tactical overrides to screen.
+      // Read whichever is actually active rather than assuming tactical's value.
+      ctx.globalCompositeOperation = stampWrapCs.mixBlendMode === 'screen' ? 'screen' : 'multiply';
 
       if(outerImg) ctx.drawImage(outerImg, 0, 0, boxSize, boxSize);
       if(innerImg){
@@ -1870,8 +1951,10 @@ async function renderTacticalCanvas(exportWidth){
         ctx.globalAlpha = 1;
       }
 
-      // content text, color #ff8069 (tactical stamp-content override)
-      ctx.fillStyle = '#ff8069';
+      // content text -- color/font read from the live element rather than
+      // hardcoded, so this works for whichever theme's stamp-content override
+      // (or lack thereof) is currently active.
+      ctx.fillStyle = stampColor;
       const W100 = W; // cqw basis = card width
       const cqw = (v) => v * W100 / 100;
 
@@ -1906,7 +1989,7 @@ async function renderTacticalCanvas(exportWidth){
         const text = it.el.textContent;
         ctx.save();
         ctx.globalAlpha = it.opacity;
-        ctx.font = `600 ${it.fontSize}px 'JetBrains Mono', monospace`;
+        ctx.font = `600 ${it.fontSize}px ${stampFontFamily}`;
         const letterSpPx = it.letterSp * it.fontSize;
         const w = measureLineWidth(ctx, text, letterSpPx);
         const baseline = curY + it.fontSize * it.lh * 0.72;
@@ -1972,14 +2055,18 @@ async function renderTacticalCanvas(exportWidth){
       selectImage(false);
       const exportWidth = getSelectedExportWidth();
 
-      // Canvas 2D direct-draw path (see renderTacticalCanvas above): reads the live
+      // Canvas 2D direct-draw path (see renderCardCanvas above): reads the live
       // preview DOM's geometry/computed style and repaints it directly, bypassing the
       // foreignObject/SVG rasterization pipeline entirely (html2canvas -> html2canvas-pro
       // -> html-to-image all hit mobile-Safari-specific bugs in that pipeline; see
-      // project_handoff.md). Rolling out theme-by-theme: tactical first, verified against
-      // both Chromium and WebKit via Playwright. classified/daily still use the
-      // html-to-image path below until they get the same treatment.
-      if(currentTheme === 'theme-tactical'){
+      // project_handoff.md). Rolled out theme-by-theme, verified against both Chromium
+      // and WebKit via Playwright plus real-device (iPhone Safari/Chrome) passes:
+      // tactical first, then classified/daily reusing the same theme-agnostic renderer
+      // (background image OR gradient, dynamic stamp/watermark color+blend+font reads).
+      // The html-to-image path below is kept only as a fallback for as-yet-unported
+      // themes -- none remain right now, but this guards against a theme being added
+      // later without Canvas support from day one.
+      if(['theme-tactical', 'theme-classified', 'theme-daily'].includes(currentTheme)){
         // Overall safety-net timeout: guarantees `downloading` always resets and the
         // user always sees a visible alert, even if something inside the renderer
         // hangs in a way loadImg's own per-image timeout doesn't cover (e.g. a stuck
@@ -1991,7 +2078,7 @@ async function renderTacticalCanvas(exportWidth){
           const t = setTimeout(() => reject(new Error('Canvas export timed out after ' + ms + 'ms')), ms);
           promise.then(v => { clearTimeout(t); resolve(v); }, e => { clearTimeout(t); reject(e); });
         });
-        withTimeout(renderTacticalCanvas(exportWidth), 15000).then(canvas => {
+        withTimeout(renderCardCanvas(exportWidth), 15000).then(canvas => {
           if(wasSelected) selectImage(true);
           finalizeDownload(canvas);
         }).catch(err => {
