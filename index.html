@@ -1933,12 +1933,24 @@ async function renderCardCanvas(exportWidth){
         drawLineLTR(tctx, txt, padX, localBaselineY, letterSp);
         const maskImg = await loadImg(maskUrl);
         const tileSize = fontPx * 0.55; // matches CSS mask-size:.55em .55em
-        const pattern = tctx.createPattern(maskImg, 'repeat');
-        pattern.setTransform(new DOMMatrix().scale(tileSize / maskImg.width, tileSize / maskImg.height));
+        // Manually tile the mask via repeated drawImage rather than
+        // CanvasPattern.setTransform() -- the latter produced a garbled/corrupted
+        // result on at least one real device (support/behavior for it has been
+        // inconsistent across mobile browser versions). Plain drawImage in a loop
+        // is the most universally-supported way to tile an image on canvas.
+        const maskLayer = document.createElement('canvas');
+        maskLayer.width = temp.width;
+        maskLayer.height = temp.height;
+        const mctx = maskLayer.getContext('2d');
+        mctx.scale(scale, scale);
+        for(let ty = -tileSize; ty < tempLocalH + tileSize; ty += tileSize){
+          for(let tx = -tileSize; tx < tempLocalW + tileSize; tx += tileSize){
+            mctx.drawImage(maskImg, tx, ty, tileSize, tileSize);
+          }
+        }
         tctx.save();
         tctx.globalCompositeOperation = 'source-atop';
-        tctx.fillStyle = pattern;
-        tctx.fillRect(0, 0, tempLocalW, tempLocalH);
+        tctx.drawImage(maskLayer, 0, 0, tempLocalW, tempLocalH);
         tctx.restore();
         ctx.drawImage(temp, finalTextLeftX - padX, finalBaselineY - localBaselineY, tempLocalW, tempLocalH);
       } else {
