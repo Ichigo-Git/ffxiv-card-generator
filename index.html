@@ -1919,11 +1919,11 @@ async function renderCardCanvas(exportWidth){
         // texture (CSS mask-image on this element -- see that rule's comment for
         // why it's not the ring image itself) so the letters read as worn/mottled
         // ink instead of flat color, matching the stamp ring's look. Composited on
-        // an isolated offscreen canvas first: doing this with the main ctx's
-        // globalCompositeOperation='source-atop' directly would also eat into the
-        // frame texture just drawn above (source-atop affects ALL existing canvas
-        // content, not just the text), so the text is built up separately here and
-        // only the finished result is drawn onto the main canvas.
+        // an isolated offscreen canvas first: applying destination-in with the
+        // main ctx directly would also erase the frame border drawn above
+        // (destination-in clears everything outside the mask's alpha, not just
+        // the text), so the text is built up separately here and only the
+        // finished result is drawn onto the main canvas.
         const padX = fontPx * 0.5, padTop = fontPx * 1.1, padBottom = fontPx * 0.9;
         const tempLocalW = w + padX * 2;
         const tempLocalH = padTop + padBottom;
@@ -1954,7 +1954,15 @@ async function renderCardCanvas(exportWidth){
           }
         }
         tctx.save();
-        tctx.globalCompositeOperation = 'source-atop';
+        // destination-in (not source-atop): keeps the EXISTING destination
+        // pixels' color (the stamp-colored text just drawn) and uses only the
+        // new layer's ALPHA channel to decide what stays visible where. Modulates
+        // opacity only, exactly like CSS mask-image -- this was previously
+        // source-atop, which instead paints with the new layer's OWN color
+        // (this mask is black, so every "worn" patch was rendering as flat black
+        // instead of a faded version of the stamp color -- the "still looks dirty
+        // black" issue).
+        tctx.globalCompositeOperation = 'destination-in';
         tctx.drawImage(maskLayer, 0, 0, tempLocalW, tempLocalH);
         tctx.restore();
         ctx.drawImage(temp, finalTextLeftX - padX, finalBaselineY - localBaselineY, tempLocalW, tempLocalH);
