@@ -1895,19 +1895,8 @@ async function renderCardCanvas(exportWidth){
       // element's true pre-rotation layout size, matching what the CSS border
       // actually renders at before the rotate() is applied.
       const wmTrueW = wm.offsetWidth, wmTrueH = wm.offsetHeight;
-      // classified: plain straight border (see CSS comment on .theme-classified
-      // .watermark) -- tactical/daily have no border here, so borderWidth is 0
-      // and this is a no-op for them.
       const borderPx = parseFloat(wcs.borderTopWidth) || 0;
-      if(borderPx > 0){
-        ctx.save();
-        ctx.strokeStyle = wcs.borderTopColor || wcs.color;
-        ctx.lineWidth = borderPx;
-        ctx.strokeRect(-wmTrueW / 2 + borderPx / 2, -wmTrueH / 2 + borderPx / 2, wmTrueW - borderPx, wmTrueH - borderPx);
-        ctx.restore();
-      }
       ctx.font = `${wcs.fontWeight} ${fontPx}px ${wcs.fontFamily}`;
-      ctx.fillStyle = wcs.color;
       const txt = wmSpan.textContent;
       const w = measureLineWidth(ctx, txt, letterSp);
       // small empirical nudge matching #watermarkText{top:.15em;left:.18em}
@@ -1915,27 +1904,37 @@ async function renderCardCanvas(exportWidth){
       const finalBaselineY = fontPx * 0.15 + fontPx * 0.33;
       const maskUrl = getMaskUrl(wm);
       if(maskUrl){
-        // classified: replace the solid-colored text with a tiled organic-noise
-        // texture (CSS mask-image on this element -- see that rule's comment for
-        // why it's not the ring image itself) so the letters read as worn/mottled
-        // ink instead of flat color, matching the stamp ring's look. Composited on
-        // an isolated offscreen canvas first: applying destination-in with the
-        // main ctx directly would also erase the frame border drawn above
-        // (destination-in clears everything outside the mask's alpha, not just
-        // the text), so the text is built up separately here and only the
-        // finished result is drawn onto the main canvas.
+        // classified: CSS mask-image is set on the whole .watermark element (not
+        // just the text), so in the live page the worn/mottled texture covers the
+        // border too, not only the letters. Both are drawn into ONE isolated layer
+        // here and masked together as a single unit so Canvas matches that -- an
+        // earlier version masked only the text in its own layer and stroked the
+        // border directly on the main canvas, which left the border fully solid
+        // and looking heavier/more solid than the (masked) border in the preview.
         const padX = fontPx * 0.5, padTop = fontPx * 1.1, padBottom = fontPx * 0.9;
-        const tempLocalW = w + padX * 2;
-        const tempLocalH = padTop + padBottom;
-        const localBaselineY = padTop;
+        // The layer must be big enough to hold the full border box too, not just
+        // the padded text -- otherwise the border gets clipped by the layer edge.
+        const tempLocalW = Math.max(w + padX * 2, wmTrueW);
+        const tempLocalH = Math.max(padTop + padBottom, wmTrueH);
+        const localBaselineY = tempLocalH / 2 + fontPx * 0.15 + fontPx * 0.33; // keep text vertically centered in the layer
         const temp = document.createElement('canvas');
         temp.width = Math.max(1, Math.ceil(tempLocalW * scale));
         temp.height = Math.max(1, Math.ceil(tempLocalH * scale));
         const tctx = temp.getContext('2d');
         tctx.scale(scale, scale);
+        if(borderPx > 0){
+          tctx.strokeStyle = wcs.borderTopColor || wcs.color;
+          tctx.lineWidth = borderPx;
+          tctx.strokeRect(
+            tempLocalW / 2 - wmTrueW / 2 + borderPx / 2,
+            tempLocalH / 2 - wmTrueH / 2 + borderPx / 2,
+            wmTrueW - borderPx,
+            wmTrueH - borderPx
+          );
+        }
         tctx.font = `${wcs.fontWeight} ${fontPx}px ${wcs.fontFamily}`;
         tctx.fillStyle = wcs.color;
-        drawLineLTR(tctx, txt, padX, localBaselineY, letterSp);
+        drawLineLTR(tctx, txt, tempLocalW / 2 - w / 2 + fontPx * 0.18, localBaselineY, letterSp);
         const maskImg = await loadImg(maskUrl);
         const tileSize = fontPx * 0.9; // matches CSS mask-size:.9em .9em
         // Manually tile the mask via repeated drawImage rather than
@@ -1955,21 +1954,29 @@ async function renderCardCanvas(exportWidth){
         }
         tctx.save();
         // destination-in (not source-atop): keeps the EXISTING destination
-        // pixels' color (the stamp-colored text just drawn) and uses only the
-        // new layer's ALPHA channel to decide what stays visible where. Modulates
-        // opacity only, exactly like CSS mask-image -- this was previously
-        // source-atop, which instead paints with the new layer's OWN color
-        // (this mask is black, so every "worn" patch was rendering as flat black
-        // instead of a faded version of the stamp color -- the "still looks dirty
-        // black" issue).
+        // pixels' color (the stamp-colored border+text just drawn) and uses only
+        // the new layer's ALPHA channel to decide what stays visible where.
+        // Modulates opacity only, exactly like CSS mask-image -- this was
+        // previously source-atop, which instead paints with the new layer's OWN
+        // color (this mask is black, so every "worn" patch was rendering as flat
+        // black instead of a faded version of the stamp color).
         tctx.globalCompositeOperation = 'destination-in';
         tctx.drawImage(maskLayer, 0, 0, tempLocalW, tempLocalH);
         tctx.restore();
-        ctx.drawImage(temp, finalTextLeftX - padX, finalBaselineY - localBaselineY, tempLocalW, tempLocalH);
+        ctx.drawImage(temp, -tempLocalW / 2, -tempLocalH / 2, tempLocalW, tempLocalH);
+        ctx.restore();
       } else {
+        if(borderPx > 0){
+          ctx.save();
+          ctx.strokeStyle = wcs.borderTopColor || wcs.color;
+          ctx.lineWidth = borderPx;
+          ctx.strokeRect(-wmTrueW / 2 + borderPx / 2, -wmTrueH / 2 + borderPx / 2, wmTrueW - borderPx, wmTrueH - borderPx);
+          ctx.restore();
+        }
+        ctx.fillStyle = wcs.color;
         drawLineLTR(ctx, txt, finalTextLeftX, finalBaselineY, letterSp);
+        ctx.restore();
       }
-      ctx.restore();
     }
   }
 
