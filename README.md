@@ -9,8 +9,10 @@ You can enter character information, select your interaction style, upload a scr
 ## 公開ページ / Live Page
 
 GitHub Pagesで公開しています。  
+https://ichigo-git.github.io/ffxiv-card-generator/
 
 Published via GitHub Pages.  
+https://ichigo-git.github.io/ffxiv-card-generator/
 
 ## 主な機能 / Features
 
@@ -42,7 +44,7 @@ Smartphone use is supported to some extent, but detailed image adjustment may be
 
 このジェネレーターで作成したカード画像は、個人のSNS投稿・非商用用途で使用できます。
 
-Cards generated with this tool may be used for personal, non-commercial SNS posts.
+Cards generated with this tool may be used for personal, non-commercial social media posts.
 
 以下の行為は禁止します。
 
