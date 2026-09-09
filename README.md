@@ -68,6 +68,17 @@ FINAL FANTASY XIV and related names, images, and copyrighted materials belong to
 The creator is not responsible for any issues caused by the use of this tool.  
 Please use it at your own discretion.
 
+## サポートについて / Support
+
+個人制作ツールのため、個別のカスタマイズ要望や機能追加依頼への対応は、今のところ予定していません。  
+不具合については、確認できた場合のみ可能な範囲で修正します。
+今後の更新は、制作者の判断で行う場合があります。
+
+This is a personal project.  
+Support for individual customization requests or feature additions is not currently planned.  
+Confirmed bugs may be fixed when possible.  
+Future updates may be made at the creator’s discretion.
+
 ## 更新履歴 / Changelog
 
 ### 2026-09-XX
