@@ -744,6 +744,14 @@
     </div>
 
   </div>
+
+  <!-- Privacy/rights notice for testers who won't have read a separate README --
+       plain page footer, not part of the generated card itself. Switches with
+       the same EN/JA toggle as the rest of the control panel. -->
+  <div class="mt-8 pt-4 border-t border-[var(--line)] text-center">
+    <p class="cp-label !mb-1" data-i18n="privacyNotice" style="text-transform:none; letter-spacing:normal;">Your input and images are never saved to any server — everything runs entirely in your browser.</p>
+    <p class="cp-label !mb-0" data-i18n="disclaimerNotice" style="text-transform:none; letter-spacing:normal;">This is an unofficial, fan-made tool. All rights to FINAL FANTASY XIV and related names, images, and other assets belong to their respective owners.</p>
+  </div>
 </div>
 
 <!-- Image resize/selection UI overlay — deliberately OUTSIDE #caseFile so the card's
@@ -838,7 +846,9 @@
       lblDateLogged:'DATE LOGGED', lblFileNo:'FILE NO. (001-999)', lblOutputFormat:'OUTPUT FORMAT',
       cardLblName:'NAME', cardLblRace:'RACE', cardLblDc:'DC', cardLblWorld:'WORLD', cardLblRoleJob:'ROLE / JOB',
       cardLblActivity:'ACTIVITY', cardLblStyle:'STYLE', cardLblBehavior:'BEHAVIOR PATTERN', cardLblRemarks:'REMARKS',
-      selectPlaceholder:'SELECT', lblOutputSize:'OUTPUT SIZE', sizeLight:'(Light)', sizeStandard:'(Standard)', sizeHigh:'(High-Res)'
+      selectPlaceholder:'SELECT', lblOutputSize:'OUTPUT SIZE', sizeLight:'(Light)', sizeStandard:'(Standard)', sizeHigh:'(High-Res)',
+      privacyNotice:'Your input and images are never saved to any server — everything runs entirely in your browser.',
+      disclaimerNotice:'This is an unofficial, fan-made tool. All rights to FINAL FANTASY XIV and related names, images, and other assets belong to their respective owners.'
     },
     ja: {
       cpTitle:'コントロールパネル', cpSubtitle:'記録データの入力', eyebrow:'機密資料室',
@@ -848,7 +858,9 @@
       lblDateLogged:'記録日', lblFileNo:'管理番号（001〜999）', lblOutputFormat:'出力形式',
       cardLblName:'名前', cardLblRace:'種族', cardLblDc:'DC', cardLblWorld:'ワールド', cardLblRoleJob:'ロール / ジョブ',
       cardLblActivity:'活動内容', cardLblStyle:'距離感', cardLblBehavior:'性格・行動傾向', cardLblRemarks:'備考',
-      selectPlaceholder:'選択してください', lblOutputSize:'出力サイズ', sizeLight:'（軽量）', sizeStandard:'（標準）', sizeHigh:'（高精細）'
+      selectPlaceholder:'選択してください', lblOutputSize:'出力サイズ', sizeLight:'（軽量）', sizeStandard:'（標準）', sizeHigh:'（高精細）',
+      privacyNotice:'入力した情報・画像はサーバーに保存されません。処理はブラウザ上で完結します。',
+      disclaimerNotice:'本ツールは非公式の個人制作ツールです。FINAL FANTASY XIVおよび関連する名称・画像等の権利は、各権利者に帰属します。'
     }
   };
 
