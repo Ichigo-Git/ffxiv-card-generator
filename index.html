@@ -43,7 +43,15 @@
   }
   .cp-input:focus, .cp-select:focus, .cp-textarea:focus{
     border-color:var(--ink);
-    background:#fffdf7;
+    /* background-color, NOT the "background" shorthand: the shorthand resets
+       every background-* sub-property it doesn't mention to its initial value,
+       which was wiping out .cp-select's background-image/background-position
+       (the custom ▼ arrow, positioned via background-position:right .8rem
+       center) on focus. Combined with this rule's transition:background, the
+       arrow visibly slid back in from the left on blur (right after picking an
+       option) instead of just staying put. background-color alone only touches
+       the color, leaving the arrow's image/position untouched. */
+    background-color:#fffdf7;
   }
   .cp-label{
     font-size:.66rem;
