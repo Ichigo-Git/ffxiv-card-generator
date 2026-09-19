@@ -38,7 +38,7 @@ PCブラウザでの利用を推奨しています。
 スマートフォンでも利用できるよう調整していますが、画像の細かい位置調整などはPCの方が操作しやすい場合があります。
 
 A PC browser is recommended.  
-Smartphone use is supported to some extent, but detailed image adjustment may be easier on a PC.
+Mobile devices are also supported to some extent, but detailed image adjustments may be easier on a PC.
 
 ## 利用について / Usage
 
@@ -61,7 +61,7 @@ The following actions are not allowed:
 このジェネレーターは個人制作の非公式ツールです。  
 FINAL FANTASY XIVおよび関連する名称・画像・著作物の権利は、各権利者に帰属します。
 
-This is a personally made unofficial tool.  
+This is an unofficial fan-made tool.  
 FINAL FANTASY XIV and related names, images, and copyrighted materials belong to their respective rights holders.
 
 このツールの利用によって発生したトラブルについて、制作者は責任を負いません。  
