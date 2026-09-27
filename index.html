@@ -283,6 +283,7 @@
     flex:1 1 auto;
     min-height:0;
     position:relative;
+    z-index:1;
     border:1px solid var(--line);
     background:rgba(0,0,0,.12);
   }
@@ -660,7 +661,7 @@
           </div>
 
           <!-- MAIN AREA (~70%): 4:5 hero image, full-bleed vertically, left / info column, right -->
-          <div class="min-h-0 flex gap-4 relative" style="flex:7 1 0%;">
+          <div class="min-h-0 flex gap-4 relative" style="flex:7 1 0%; isolation:isolate;">
             <!-- CONFIDENTIAL watermark: sits in FRONT of the photo and the info text, crossing their
                  shared border on a bold diagonal. It never uses a flat opaque fill — the letterforms are
                  hollow (transparent fill + thin stroke) and blended (multiply/overlay, per theme) so the
