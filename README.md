@@ -83,6 +83,6 @@ Future updates may be made at the creator’s discretion.
 
 ## 更新履歴 / Changelog
 
-### 2026-09-XX
+### 2026-09-28
 
 - 公開版をリリース / Initial public release
