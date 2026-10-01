@@ -447,7 +447,7 @@
 
   <div class="border-b border-[var(--ink)] pb-4 mb-8 flex items-end justify-between flex-wrap gap-3">
     <div>
-      <div class="cp-label mb-1" data-i18n="eyebrow">CLASSIFIED RECORDS DIVISION</div>
+      <div class="cp-label mb-1" data-i18n="eyebrow">CLASSIFIED RECORDS DIVISION  #KomaLab</div>
       <div class="flex items-center gap-3 flex-wrap">
         <h1 class="font-display text-2xl sm:text-3xl md:text-4xl font-bold tracking-wide2">FFXIV CASE FILE GENERATOR</h1>
         <!-- language toggle: EN is default; structure supports adding more languages (e.g. KO) later -->
@@ -519,10 +519,21 @@
           <label class="cp-label" data-i18n="lblDc">DC</label>
           <select id="dcSelect" class="cp-select">
             <option value="" class="select-placeholder" selected>SELECT</option>
-            <option>Elemental</option>
-            <option>Gaia</option>
-            <option>Mana</option>
-            <option>Meteor</option>
+            <optgroup label="JAPAN" data-region="jp">
+              <option>Elemental</option>
+              <option>Gaia</option>
+              <option>Mana</option>
+              <option>Meteor</option>
+            </optgroup>
+            <optgroup label="NORTH AMERICA" data-region="na">
+              <option>Aether</option>
+              <option>Crystal</option>
+              <option>Dynamis</option>
+              <option>Primal</option>
+            </optgroup>
+            <optgroup label="KOREA" data-region="kr">
+              <option>Korea</option>
+            </optgroup>
           </select>
         </div>
         <div>
@@ -806,16 +817,36 @@
       'viera-rava':'ヴィエラ / ラヴァ', 'viera-veena':'ヴィエラ / ヴィナ'
     }
   };
-  // DC -> WORLD cascade (Japan data centers). DC and WORLD names are identical in both languages.
+  // DC -> WORLD cascade, across all three regions offered (Japan / North America / Korea).
+  // DC and WORLD names are identical in both languages -- these are proper nouns, not
+  // translated like race/role/job labels (Korea's worlds happen to reuse a few JP world
+  // names -- Carbuncle, Tonberry, Fenrir -- since they're separate regions/DCs, the
+  // string collision is harmless; the DC key is what makes each cascade entry unique).
   const DC_WORLDS = {
+    // Japan
     'Elemental': ['Aegis','Atomos','Carbuncle','Garuda','Gungnir','Kujata','Tonberry','Typhon'],
     'Gaia':      ['Alexander','Bahamut','Durandal','Fenrir','Ifrit','Ridill','Tiamat','Ultima'],
     'Mana':      ['Anima','Asura','Chocobo','Hades','Ixion','Masamune','Pandaemonium','Titan'],
-    'Meteor':    ['Belias','Mandragora','Ramuh','Shinryu','Unicorn','Valefor','Yojimbo','Zeromus']
+    'Meteor':    ['Belias','Mandragora','Ramuh','Shinryu','Unicorn','Valefor','Yojimbo','Zeromus'],
+    // North America
+    'Aether':    ['Adamantoise','Cactuar','Faerie','Gilgamesh','Jenova','Midgardsormr','Sargatanas','Siren'],
+    'Crystal':   ['Balmung','Brynhildr','Coeurl','Diabolos','Goblin','Malboro','Mateus','Zalera'],
+    'Dynamis':   ['Halicarnassus','Maduin','Marilith','Seraph','Cuchulainn','Golem','Kraken','Rafflesia'],
+    'Primal':    ['Behemoth','Excalibur','Exodus','Famfrit','Hyperion','Lamia','Leviathan','Ultros'],
+    // Korea -- a single unified region/DC (no sub-DC split like JP/NA), so there's only
+    // one DC option ("Korea") cascading into its five worlds.
+    'Korea':     ['Chocobo','Carbuncle','Moogle','Tonberry','Fenrir']
   };
   const ROLE_LABELS = {
     en: { tank:'Tank', healer:'Healer', dps:'DPS', limited:'Limited Job' },
     ja: { tank:'タンク', healer:'ヒーラー', dps:'DPS', limited:'リミテッドジョブ' }
+  };
+  // DC <optgroup> region headers in the DC select -- these are UI chrome (unlike the DC/
+  // WORLD proper nouns themselves, which stay identical in both languages), so they do
+  // get translated, keyed by each optgroup's data-region attribute.
+  const DC_REGION_LABELS = {
+    en: { jp:'JAPAN', na:'NORTH AMERICA', kr:'KOREA' },
+    ja: { jp:'日本', na:'北米', kr:'韓国' }
   };
   // ROLE -> JOB cascade
   const ROLE_JOBS = {
@@ -849,7 +880,7 @@
 
   const I18N = {
     en: {
-      cpTitle:'CONTROL PANEL', cpSubtitle:'COMPILE SUBJECT DOSSIER', eyebrow:'CLASSIFIED RECORDS DIVISION',
+      cpTitle:'CONTROL PANEL', cpSubtitle:'COMPILE SUBJECT DOSSIER', eyebrow:'CLASSIFIED RECORDS DIVISION  #KomaLab',
       lblScreenshot:'SUBJECT SCREENSHOT', btnUpload:'UPLOAD IMAGE', lblName:'CHARACTER NAME', lblRace:'RACE',
       lblDc:'DC', lblWorld:'WORLD', lblRole:'ROLE', lblJob:'JOB', lblActivity:'ACTIVITY', lblStyle:'STYLE',
       lblBgPattern:'BACKGROUND PATTERN', lblBehavior:'BEHAVIOR PATTERN', lblRemarks:'REMARKS',
@@ -862,7 +893,7 @@
       readmeLinkText:'For details, see the README'
     },
     ja: {
-      cpTitle:'コントロールパネル', cpSubtitle:'記録データの入力', eyebrow:'機密資料室',
+      cpTitle:'コントロールパネル', cpSubtitle:'記録データの入力', eyebrow:'機密資料室  #KomaLab',
       lblScreenshot:'スクリーンショット', btnUpload:'画像をアップロード', lblName:'キャラクター名', lblRace:'種族',
       lblDc:'DC', lblWorld:'ワールド', lblRole:'ロール', lblJob:'ジョブ', lblActivity:'活動内容', lblStyle:'距離感',
       lblBgPattern:'背景パターン', lblBehavior:'性格・行動傾向', lblRemarks:'備考',
@@ -1160,6 +1191,9 @@
     });
     document.querySelectorAll('#jobSelect option:not(.select-placeholder)').forEach(opt => {
       opt.textContent = JOB_LABELS[lang][opt.value] || opt.value;
+    });
+    document.querySelectorAll('#dcSelect optgroup[data-region]').forEach(og => {
+      og.label = DC_REGION_LABELS[lang][og.dataset.region] || og.label;
     });
     // Single pass covers every select's placeholder option (race/dc/role are static,
     // world/job are regenerated by populate*Options) regardless of current DC/ROLE state.
