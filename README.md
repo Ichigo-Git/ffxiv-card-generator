@@ -9,7 +9,9 @@ You can enter character information, select your interaction style, upload a scr
 ## 公開ページ / Live Page
 
 GitHub Pagesで公開しています。  
+
 Published via GitHub Pages.  
+
 https://ichigo-git.github.io/ffxiv-card-generator/
 
 ## 主な機能 / Features
