@@ -534,6 +534,9 @@
             <optgroup label="KOREA" data-region="kr">
               <option>Korea</option>
             </optgroup>
+            <optgroup label="OCEANIA" data-region="oce">
+              <option>Materia</option>
+            </optgroup>
           </select>
         </div>
         <div>
@@ -835,7 +838,10 @@
     'Primal':    ['Behemoth','Excalibur','Exodus','Famfrit','Hyperion','Lamia','Leviathan','Ultros'],
     // Korea -- a single unified region/DC (no sub-DC split like JP/NA), so there's only
     // one DC option ("Korea") cascading into its five worlds.
-    'Korea':     ['Chocobo','Carbuncle','Moogle','Tonberry','Fenrir']
+    'Korea':     ['Chocobo','Carbuncle','Moogle','Tonberry','Fenrir'],
+    // Oceania -- also a single DC (named "Materia", unlike Korea's region-as-DC naming,
+    // Materia is the data center's actual official name).
+    'Materia':   ['Bismarck','Ravana','Sephirot','Sophia','Zurvan']
   };
   const ROLE_LABELS = {
     en: { tank:'Tank', healer:'Healer', dps:'DPS', limited:'Limited Job' },
@@ -845,8 +851,8 @@
   // WORLD proper nouns themselves, which stay identical in both languages), so they do
   // get translated, keyed by each optgroup's data-region attribute.
   const DC_REGION_LABELS = {
-    en: { jp:'JAPAN', na:'NORTH AMERICA', kr:'KOREA' },
-    ja: { jp:'日本', na:'北米', kr:'韓国' }
+    en: { jp:'JAPAN', na:'NORTH AMERICA', kr:'KOREA', oce:'OCEANIA' },
+    ja: { jp:'日本', na:'北米', kr:'韓国', oce:'オセアニア' }
   };
   // ROLE -> JOB cascade
   const ROLE_JOBS = {
