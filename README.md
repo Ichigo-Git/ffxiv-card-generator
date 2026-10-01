@@ -83,6 +83,9 @@ Future updates may be made at the creator’s discretion.
 
 ## 更新履歴 / Changelog
 
+### 2026-10-01
+- DC / World候補に北米・オセアニア・韓国を追加 / Added North America, Oceania, and Korea to the DC / World options
+
 ### 2026-09-28
 
 - 公開版をリリース / Initial public release
